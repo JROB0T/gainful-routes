@@ -565,34 +565,40 @@ export default function Dashboard() {
       // Strengths
       if (results.success_plan?.strengths?.length) {
         addSubHeader("Your Key Strengths");
-        doc.setFillColor(254, 249, 195); // Yellow 100
-        const strengthsHeight = results.success_plan.strengths.length * 6 + 8;
-        doc.roundedRect(margin, y - 4, contentWidth, strengthsHeight, 2, 2, 'F');
         doc.setFontSize(9);
         doc.setTextColor(...colors.text);
         
-        results.success_plan.strengths.forEach((strength, i) => {
-          checkPageBreak(8);
-          const truncatedStrength = strength.length > 60 ? strength.substring(0, 57) + "..." : strength;
-          doc.text(`> ${truncatedStrength}`, margin + 5, y);
-          y += 6;
+        results.success_plan.strengths.forEach((strength) => {
+          checkPageBreak(15);
+          doc.setFillColor(254, 249, 195); // Yellow 100
+          const strengthLines = doc.splitTextToSize(strength, contentWidth - 20);
+          const boxHeight = strengthLines.length * 5 + 4;
+          doc.roundedRect(margin, y - 4, contentWidth, boxHeight, 2, 2, 'F');
+          
+          strengthLines.forEach((line: string, i: number) => {
+            doc.text(`${i === 0 ? '> ' : '   '}${line}`, margin + 5, y + i * 5);
+          });
+          y += boxHeight + 2;
         });
-        y += 6;
+        y += 4;
       }
       
       // Skill Gaps
       if (results.success_plan?.skill_gaps?.length) {
         addSubHeader("Skills to Develop");
         results.success_plan.skill_gaps.forEach((skill) => {
-          checkPageBreak(8);
-          const skillWidth = Math.min(doc.getTextWidth(skill) + 10, contentWidth - 10);
-          doc.setFillColor(...colors.secondary);
-          doc.roundedRect(margin, y - 4, skillWidth, 7, 2, 2, 'F');
+          checkPageBreak(15);
           doc.setFontSize(9);
           doc.setTextColor(...colors.text);
-          const truncatedSkill = skill.length > 50 ? skill.substring(0, 47) + "..." : skill;
-          doc.text(truncatedSkill, margin + 5, y);
-          y += 10;
+          const skillLines = doc.splitTextToSize(skill, contentWidth - 15);
+          const boxHeight = skillLines.length * 5 + 4;
+          doc.setFillColor(...colors.secondary);
+          doc.roundedRect(margin, y - 4, contentWidth, boxHeight, 2, 2, 'F');
+          
+          skillLines.forEach((line: string, i: number) => {
+            doc.text(line, margin + 5, y + i * 5);
+          });
+          y += boxHeight + 2;
         });
         y += 5;
       }
@@ -688,27 +694,42 @@ export default function Dashboard() {
       if (results.success_plan?.best_long_term_bets?.length) {
         addSubHeader("Best Long-Term Bets");
         results.success_plan.best_long_term_bets.forEach((bet) => {
-          checkPageBreak(25);
+          checkPageBreak(40);
+          
+          // Calculate dynamic height based on content
+          const whyLines = doc.splitTextToSize(bet.why, contentWidth - 15);
+          const potentialLines = doc.splitTextToSize(`Potential: ${bet.potential}`, contentWidth - 15);
+          const totalHeight = 12 + (whyLines.length * 5) + 4 + (potentialLines.length * 5) + 4;
           
           doc.setFillColor(219, 234, 254); // Blue 100
-          doc.roundedRect(margin, y - 4, contentWidth, 22, 2, 2, 'F');
+          doc.roundedRect(margin, y - 4, contentWidth, totalHeight, 2, 2, 'F');
           
+          // Title
           doc.setFontSize(10);
           doc.setFont("helvetica", "bold");
           doc.setTextColor(...colors.blue);
           doc.text(bet.opportunity, margin + 5, y + 2);
+          y += 10;
           
+          // Why
           doc.setFont("helvetica", "normal");
           doc.setFontSize(8);
           doc.setTextColor(...colors.text);
-          const whyLines = doc.splitTextToSize(bet.why, contentWidth - 10);
-          doc.text(whyLines[0], margin + 5, y + 9);
+          whyLines.forEach((line: string) => {
+            doc.text(line, margin + 5, y);
+            y += 5;
+          });
+          y += 2;
           
+          // Potential
           doc.setTextColor(...colors.primary);
           doc.setFont("helvetica", "bold");
-          doc.text(`Potential: ${bet.potential}`, margin + 5, y + 16);
+          potentialLines.forEach((line: string) => {
+            doc.text(line, margin + 5, y);
+            y += 5;
+          });
           
-          y += 28;
+          y += 6;
         });
       }
       
