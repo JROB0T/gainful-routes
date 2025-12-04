@@ -201,12 +201,37 @@ export default function GetStarted() {
 
   const handleGenerateOpportunities = async () => {
     setIsGenerating(true);
-    // Simulate AI generation
-    setTimeout(() => {
-      setIsGenerating(false);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-recommendations`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          wizardData: data,
+          extractedProfile: aiAnalysis,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to generate recommendations");
+      }
+
+      const result = await response.json();
+      
+      // Store results in sessionStorage for dashboard
+      sessionStorage.setItem("nextmove_results", JSON.stringify(result.data));
+      
       toast.success("Your personalized opportunities are ready!");
-      navigate("/dashboard?test=true");
-    }, 3000);
+      navigate("/dashboard?generated=true");
+    } catch (error) {
+      console.error("Generation error:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to generate recommendations");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   // Determine total steps based on payment status
