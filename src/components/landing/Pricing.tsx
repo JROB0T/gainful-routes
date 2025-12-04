@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 
 const includedFeatures = [
   "Full AI-powered assessment",
-  "10-15 personalized opportunity matches",
+  "10-15 tailored career & income paths",
   "Complete 30-day Success Plan",
   "Skills & strengths analysis",
   "Income potential estimates",
