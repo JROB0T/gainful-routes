@@ -1,7 +1,7 @@
 project_id = "jfxtpupdgljcxvyrgxag"
 
 [functions.extract-profile]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-recommendations]
-verify_jwt = false
+verify_jwt = true

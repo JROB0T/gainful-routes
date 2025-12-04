@@ -12,10 +12,9 @@ interface TeaserPreviewProps {
   } | null;
   onBack: () => void;
   isLoggedIn: boolean;
-  onBypassPayment?: () => void;
 }
 
-export function TeaserPreview({ analysis, onBack, isLoggedIn, onBypassPayment }: TeaserPreviewProps) {
+export function TeaserPreview({ analysis, onBack, isLoggedIn }: TeaserPreviewProps) {
   const navigate = useNavigate();
 
   if (!analysis) {
@@ -140,17 +139,6 @@ export function TeaserPreview({ analysis, onBack, isLoggedIn, onBypassPayment }:
           >
             {isLoggedIn ? "Unlock Now — $10" : "Sign Up to Unlock — $10"}
           </Button>
-
-          {onBypassPayment && (
-            <Button
-              variant="outline"
-              size="lg"
-              className="w-full sm:w-auto mt-3"
-              onClick={onBypassPayment}
-            >
-              Bypass Payment (Testing)
-            </Button>
-          )}
 
           <p className="text-xs text-muted-foreground mt-4">
             Secure payment via Stripe • 30-day access
