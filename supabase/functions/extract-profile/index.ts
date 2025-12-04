@@ -11,133 +11,188 @@ serve(async (req) => {
   }
 
   try {
-    const { resumeText, linkedinUrl, twitterUrl, portfolioUrl } = await req.json();
+    const { resumeText, linkedinUrl, twitterUrl, portfolioUrl, basicInfo } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Prepare input for AI
     const inputContent = `
-Resume/Profile Text:
+RESUME/PROFILE TEXT:
 ${resumeText || "Not provided"}
 
-LinkedIn URL: ${linkedinUrl || "Not provided"}
-Twitter URL: ${twitterUrl || "Not provided"}
-Portfolio URL: ${portfolioUrl || "Not provided"}
+LINKEDIN URL: ${linkedinUrl || "Not provided"}
+TWITTER URL: ${twitterUrl || "Not provided"}
+PORTFOLIO URL: ${portfolioUrl || "Not provided"}
+
+BASIC INFO:
+- Name: ${basicInfo?.firstName || "Not provided"}
+- Location: ${basicInfo?.city || ""}, ${basicInfo?.state || ""}
+- Current Situation: ${basicInfo?.situation || "exploring options"}
 `.trim();
 
-    const systemPrompt = `You are a career analysis AI for NextMove. Analyze the provided resume/profile text and extract structured career data. If the input is sparse, make reasonable inferences based on any available context.`;
+    const systemPrompt = `You are a career analysis AI for NextMove, a U.S.-focused platform. Analyze the provided resume/profile and extract comprehensive structured career data.
+
+EXTRACTION GUIDELINES:
+- Extract all hard skills (technical, tools, software, methodologies)
+- Extract soft skills (communication, leadership, problem-solving, etc.)
+- Identify professional interests from experience and context
+- List all degrees, certifications, and licenses separately
+- Summarize work history concisely
+- Infer personality indicators from work patterns and achievements
+- Identify all monetizable assets (physical, digital, network)
+- Infer constraints from career trajectory
+
+If information is sparse, make reasonable inferences based on available context. Be thorough but realistic.`;
 
     const tools = [
       {
         type: "function",
         function: {
           name: "extract_career_profile",
-          description: "Extract structured career profile data from resume text",
+          description: "Extract comprehensive structured career profile data",
           parameters: {
             type: "object",
             properties: {
               skills: {
                 type: "array",
                 items: { type: "string" },
-                description: "5-15 professional skills identified"
+                description: "8-20 hard/technical skills (tools, technologies, methodologies)"
+              },
+              soft_skills: {
+                type: "array",
+                items: { type: "string" },
+                description: "5-10 soft skills (leadership, communication, etc.)"
               },
               interests: {
                 type: "array",
                 items: { type: "string" },
-                description: "3-8 professional interests inferred"
+                description: "5-10 professional interests inferred from experience"
               },
-              credentials: {
+              degrees: {
                 type: "array",
                 items: { type: "string" },
-                description: "Degrees, certifications, licenses"
+                description: "Educational degrees (e.g., 'BS Computer Science - Stanford')"
               },
-              workSummary: {
+              certifications: {
+                type: "array",
+                items: { type: "string" },
+                description: "Professional certifications (e.g., 'AWS Solutions Architect')"
+              },
+              licenses: {
+                type: "array",
+                items: { type: "string" },
+                description: "Professional licenses (e.g., 'CPA', 'Real Estate License')"
+              },
+              work_summary: {
                 type: "string",
-                description: "Brief 2-3 sentence summary of work experience"
+                description: "3-4 sentence summary of career trajectory and key achievements"
               },
-              personalityIndicators: {
+              personality_indicators: {
                 type: "object",
                 properties: {
-                  workTypes: {
+                  work_style: {
                     type: "array",
                     items: { type: "string" },
-                    description: "Work style preferences like creative, analytical, leadership"
+                    description: "2-4 work style traits (e.g., analytical, creative, collaborative)"
                   },
-                  structurePreference: {
+                  leadership_level: {
+                    type: "string",
+                    enum: ["individual-contributor", "team-lead", "manager", "director", "executive"]
+                  },
+                  structure_preference: {
                     type: "number",
-                    description: "1-5 scale (1=flexible, 5=structured)"
+                    description: "1-5 scale (1=highly flexible, 5=highly structured)"
                   },
-                  riskTolerance: {
+                  risk_tolerance: {
                     type: "number",
                     description: "1-5 scale (1=risk-averse, 5=risk-seeking)"
+                  },
+                  autonomy_preference: {
+                    type: "number",
+                    description: "1-5 scale (1=prefers guidance, 5=highly autonomous)"
                   }
                 },
-                required: ["workTypes", "structurePreference", "riskTolerance"]
+                required: ["work_style", "leadership_level", "structure_preference", "risk_tolerance", "autonomy_preference"]
               },
               assets: {
                 type: "object",
                 properties: {
-                  digitalAssets: {
+                  digital_assets: {
                     type: "array",
                     items: { type: "string" },
-                    description: "Digital skills, platforms, audiences"
+                    description: "Digital skills, platforms, social media presence, content"
                   },
-                  credentials: {
+                  physical_assets: {
                     type: "array",
                     items: { type: "string" },
-                    description: "Professional licenses, certifications"
+                    description: "Equipment, property, vehicles, tools they might own"
                   },
-                  networkStrength: {
+                  network_strength: {
                     type: "string",
                     enum: ["weak", "moderate", "strong", "very-strong"]
+                  },
+                  industry_connections: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "Industries where they likely have contacts"
                   }
                 },
-                required: ["digitalAssets", "credentials", "networkStrength"]
+                required: ["digital_assets", "physical_assets", "network_strength", "industry_connections"]
               },
-              inferredConstraints: {
+              inferred_constraints: {
                 type: "object",
                 properties: {
-                  experienceLevel: {
+                  experience_level: {
                     type: "string",
                     enum: ["entry", "mid", "senior", "executive"]
                   },
+                  career_stage: {
+                    type: "string",
+                    enum: ["early-career", "mid-career", "career-changer", "pre-retirement", "retired"]
+                  },
                   industries: {
                     type: "array",
-                    items: { type: "string" }
+                    items: { type: "string" },
+                    description: "Industries they have experience in"
+                  },
+                  geographic_flexibility: {
+                    type: "string",
+                    enum: ["local-only", "regional", "national", "remote-preferred", "fully-flexible"]
                   }
                 },
-                required: ["experienceLevel", "industries"]
+                required: ["experience_level", "career_stage", "industries", "geographic_flexibility"]
               },
-              teaserSummary: {
+              teaser_summary: {
                 type: "object",
                 properties: {
-                  skillsCount: { type: "number" },
-                  alignedTypes: {
+                  skills_count: { type: "number" },
+                  credentials_count: { type: "number" },
+                  aligned_types: {
                     type: "array",
                     items: { type: "string" },
-                    description: "2-3 career type matches"
+                    description: "3-4 opportunity types that match (career, freelance, consulting, etc.)"
                   },
-                  opportunityPaths: {
+                  opportunity_paths: {
                     type: "number",
-                    description: "Estimated 5-15 opportunity paths"
+                    description: "Estimated 10-20 opportunity paths"
                   },
-                  assetsFound: { type: "boolean" },
                   headline: {
                     type: "string",
-                    description: "Engaging 1-sentence teaser about their potential"
+                    description: "Engaging 1-2 sentence teaser about their potential (vague, not specific)"
                   }
                 },
-                required: ["skillsCount", "alignedTypes", "opportunityPaths", "assetsFound", "headline"]
+                required: ["skills_count", "credentials_count", "aligned_types", "opportunity_paths", "headline"]
               }
             },
-            required: ["skills", "interests", "credentials", "workSummary", "personalityIndicators", "assets", "inferredConstraints", "teaserSummary"]
+            required: ["skills", "soft_skills", "interests", "degrees", "certifications", "licenses", "work_summary", "personality_indicators", "assets", "inferred_constraints", "teaser_summary"]
           }
         }
       }
     ];
+
+    console.log("Calling AI for profile extraction...");
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -178,9 +233,8 @@ Portfolio URL: ${portfolioUrl || "Not provided"}
     }
 
     const aiResponse = await response.json();
-    console.log("AI Response:", JSON.stringify(aiResponse));
+    console.log("AI Response received");
     
-    // Extract data from tool call response
     const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall || toolCall.function.name !== "extract_career_profile") {
       console.error("No valid tool call in response:", aiResponse);
@@ -190,6 +244,11 @@ Portfolio URL: ${portfolioUrl || "Not provided"}
     let extractedData;
     try {
       extractedData = JSON.parse(toolCall.function.arguments);
+      console.log("Extracted profile data:", {
+        skillsCount: extractedData.skills?.length,
+        softSkillsCount: extractedData.soft_skills?.length,
+        degreesCount: extractedData.degrees?.length
+      });
     } catch (parseError) {
       console.error("Failed to parse tool call arguments:", toolCall.function.arguments);
       throw new Error("Failed to parse AI analysis results");
