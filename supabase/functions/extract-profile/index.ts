@@ -28,39 +28,116 @@ Twitter URL: ${twitterUrl || "Not provided"}
 Portfolio URL: ${portfolioUrl || "Not provided"}
 `.trim();
 
-    const systemPrompt = `You are a career analysis AI for NextMove, a U.S.-focused career discovery platform. 
-Analyze the provided resume/profile information and extract structured data.
+    const systemPrompt = `You are a career analysis AI for NextMove. Analyze the provided resume/profile text and extract structured career data. If the input is sparse, make reasonable inferences based on any available context.`;
 
-Return a JSON object with these exact fields:
-{
-  "skills": ["array of 5-15 professional skills identified"],
-  "interests": ["array of 3-8 professional interests inferred"],
-  "credentials": ["array of degrees, certifications, licenses"],
-  "workSummary": "brief 2-3 sentence summary of work experience",
-  "personalityIndicators": {
-    "workTypes": ["array of work style preferences like 'creative', 'analytical', 'leadership', 'collaborative'"],
-    "structurePreference": 1-5 (1=very flexible, 5=very structured),
-    "riskTolerance": 1-5 (1=risk-averse, 5=risk-seeking)
-  },
-  "assets": {
-    "digitalAssets": ["any digital skills, platforms, audiences mentioned"],
-    "credentials": ["professional licenses, certifications"],
-    "networkStrength": "weak|moderate|strong|very-strong"
-  },
-  "inferredConstraints": {
-    "experienceLevel": "entry|mid|senior|executive",
-    "industries": ["industries they have experience in"]
-  },
-  "teaserSummary": {
-    "skillsCount": number,
-    "alignedTypes": ["2-3 career type matches"],
-    "opportunityPaths": number (estimated 5-15),
-    "assetsFound": boolean,
-    "headline": "engaging 1-sentence teaser about their potential"
-  }
-}
-
-Be thorough but concise. Extract real insights, don't fabricate data not present in the input.`;
+    const tools = [
+      {
+        type: "function",
+        function: {
+          name: "extract_career_profile",
+          description: "Extract structured career profile data from resume text",
+          parameters: {
+            type: "object",
+            properties: {
+              skills: {
+                type: "array",
+                items: { type: "string" },
+                description: "5-15 professional skills identified"
+              },
+              interests: {
+                type: "array",
+                items: { type: "string" },
+                description: "3-8 professional interests inferred"
+              },
+              credentials: {
+                type: "array",
+                items: { type: "string" },
+                description: "Degrees, certifications, licenses"
+              },
+              workSummary: {
+                type: "string",
+                description: "Brief 2-3 sentence summary of work experience"
+              },
+              personalityIndicators: {
+                type: "object",
+                properties: {
+                  workTypes: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "Work style preferences like creative, analytical, leadership"
+                  },
+                  structurePreference: {
+                    type: "number",
+                    description: "1-5 scale (1=flexible, 5=structured)"
+                  },
+                  riskTolerance: {
+                    type: "number",
+                    description: "1-5 scale (1=risk-averse, 5=risk-seeking)"
+                  }
+                },
+                required: ["workTypes", "structurePreference", "riskTolerance"]
+              },
+              assets: {
+                type: "object",
+                properties: {
+                  digitalAssets: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "Digital skills, platforms, audiences"
+                  },
+                  credentials: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "Professional licenses, certifications"
+                  },
+                  networkStrength: {
+                    type: "string",
+                    enum: ["weak", "moderate", "strong", "very-strong"]
+                  }
+                },
+                required: ["digitalAssets", "credentials", "networkStrength"]
+              },
+              inferredConstraints: {
+                type: "object",
+                properties: {
+                  experienceLevel: {
+                    type: "string",
+                    enum: ["entry", "mid", "senior", "executive"]
+                  },
+                  industries: {
+                    type: "array",
+                    items: { type: "string" }
+                  }
+                },
+                required: ["experienceLevel", "industries"]
+              },
+              teaserSummary: {
+                type: "object",
+                properties: {
+                  skillsCount: { type: "number" },
+                  alignedTypes: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "2-3 career type matches"
+                  },
+                  opportunityPaths: {
+                    type: "number",
+                    description: "Estimated 5-15 opportunity paths"
+                  },
+                  assetsFound: { type: "boolean" },
+                  headline: {
+                    type: "string",
+                    description: "Engaging 1-sentence teaser about their potential"
+                  }
+                },
+                required: ["skillsCount", "alignedTypes", "opportunityPaths", "assetsFound", "headline"]
+              }
+            },
+            required: ["skills", "interests", "credentials", "workSummary", "personalityIndicators", "assets", "inferredConstraints", "teaserSummary"]
+          }
+        }
+      }
+    ];
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -74,6 +151,8 @@ Be thorough but concise. Extract real insights, don't fabricate data not present
           { role: "system", content: systemPrompt },
           { role: "user", content: inputContent },
         ],
+        tools,
+        tool_choice: { type: "function", function: { name: "extract_career_profile" } }
       }),
     });
 
@@ -99,20 +178,20 @@ Be thorough but concise. Extract real insights, don't fabricate data not present
     }
 
     const aiResponse = await response.json();
-    const content = aiResponse.choices?.[0]?.message?.content;
-
-    if (!content) {
-      throw new Error("No content in AI response");
+    console.log("AI Response:", JSON.stringify(aiResponse));
+    
+    // Extract data from tool call response
+    const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
+    if (!toolCall || toolCall.function.name !== "extract_career_profile") {
+      console.error("No valid tool call in response:", aiResponse);
+      throw new Error("AI did not return structured data");
     }
 
-    // Parse the JSON from the response (handle markdown code blocks)
     let extractedData;
     try {
-      const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || content.match(/```\s*([\s\S]*?)\s*```/);
-      const jsonStr = jsonMatch ? jsonMatch[1] : content;
-      extractedData = JSON.parse(jsonStr.trim());
+      extractedData = JSON.parse(toolCall.function.arguments);
     } catch (parseError) {
-      console.error("Failed to parse AI response:", content);
+      console.error("Failed to parse tool call arguments:", toolCall.function.arguments);
       throw new Error("Failed to parse AI analysis results");
     }
 
