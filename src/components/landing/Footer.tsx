@@ -9,7 +9,7 @@ export function Footer() {
             <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
               <Compass className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="font-display font-bold text-lg text-foreground">NextMove</span>
+            <span className="font-display font-bold text-lg text-foreground">CareerMovr</span>
           </div>
           
           <nav className="flex flex-wrap justify-center gap-6 text-sm">
@@ -25,7 +25,7 @@ export function Footer() {
           </nav>
           
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} NextMove. All rights reserved.
+            © {new Date().getFullYear()} CareerMovr. All rights reserved.
           </p>
         </div>
       </div>

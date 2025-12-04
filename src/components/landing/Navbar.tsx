@@ -14,7 +14,7 @@ export function Navbar() {
             <div className="w-9 h-9 rounded-lg bg-gradient-primary flex items-center justify-center group-hover:scale-105 transition-transform">
               <Compass className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="font-display font-bold text-xl text-foreground">NextMove</span>
+            <span className="font-display font-bold text-xl text-foreground">CareerMovr</span>
           </a>
 
           {/* Nav links */}
