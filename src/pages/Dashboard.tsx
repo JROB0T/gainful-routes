@@ -511,14 +511,17 @@ export default function Dashboard() {
       // Low Hanging Fruit
       if (results.low_hanging_fruit?.length) {
         addSectionHeader("Quick Wins - Start Here", colors.accent);
-        results.low_hanging_fruit.forEach((item, i) => {
-          checkPageBreak(8);
+        results.low_hanging_fruit.forEach((item) => {
+          checkPageBreak(15);
           doc.setFillColor(...colors.accent);
           doc.circle(margin + 4, y - 1, 2, 'F');
           doc.setTextColor(...colors.text);
           doc.setFontSize(10);
-          doc.text(item, margin + 10, y);
-          y += 7;
+          const itemLines = doc.splitTextToSize(item, contentWidth - 12);
+          itemLines.forEach((line: string, i: number) => {
+            doc.text(line, margin + 10, y + i * 5);
+          });
+          y += itemLines.length * 5 + 3;
         });
         y += 5;
       }
@@ -606,20 +609,17 @@ export default function Dashboard() {
       // Fast Wins
       if (results.success_plan?.fast_wins?.length) {
         addSubHeader("7-Day Fast Wins");
-        results.success_plan.fast_wins.forEach((win, i) => {
-          checkPageBreak(10);
+        results.success_plan.fast_wins.forEach((win) => {
+          checkPageBreak(15);
           doc.setFillColor(...colors.accent);
           doc.circle(margin + 4, y - 1, 3, 'F');
-          doc.setTextColor(...colors.white);
-          doc.setFontSize(8);
-          doc.text("", margin + 2.5, y);
           doc.setTextColor(...colors.text);
           doc.setFontSize(9);
-          const winLines = doc.splitTextToSize(win, contentWidth - 15);
+          const winLines = doc.splitTextToSize(win, contentWidth - 12);
           winLines.forEach((line: string, li: number) => {
             doc.text(line, margin + 10, y + li * 5);
           });
-          y += winLines.length * 5 + 3;
+          y += winLines.length * 5 + 4;
         });
         y += 5;
       }
@@ -642,16 +642,16 @@ export default function Dashboard() {
           
           doc.setFont("helvetica", "normal");
           week.tasks?.forEach((task) => {
-            checkPageBreak(8);
+            checkPageBreak(15);
             doc.setFontSize(9);
             doc.setTextColor(...colors.muted);
             doc.text("-", margin + 5, y);
             doc.setTextColor(...colors.text);
-            const taskLines = doc.splitTextToSize(task, contentWidth - 15);
+            const taskLines = doc.splitTextToSize(task, contentWidth - 12);
             taskLines.forEach((line: string, i: number) => {
               doc.text(line, margin + 10, y + i * 5);
             });
-            y += taskLines.length * 5 + 2;
+            y += taskLines.length * 5 + 3;
           });
           y += 6;
         });
@@ -675,7 +675,7 @@ export default function Dashboard() {
           y += 12;
           
           path.steps?.forEach((step, i) => {
-            checkPageBreak(8);
+            checkPageBreak(15);
             doc.setFillColor(...colors.accent);
             doc.circle(margin + 6, y - 1.5, 2.5, 'F');
             doc.setTextColor(...colors.white);
@@ -683,8 +683,11 @@ export default function Dashboard() {
             doc.text(`${i + 1}`, margin + 5, y);
             doc.setTextColor(...colors.text);
             doc.setFontSize(9);
-            doc.text(step, margin + 12, y);
-            y += 6;
+            const stepLines = doc.splitTextToSize(step, contentWidth - 15);
+            stepLines.forEach((line: string, li: number) => {
+              doc.text(line, margin + 12, y + li * 5);
+            });
+            y += stepLines.length * 5 + 2;
           });
           y += 6;
         });
