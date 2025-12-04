@@ -4,7 +4,9 @@ import {
   TrendingUp, 
   Shield, 
   Clock, 
-  RefreshCw 
+  RefreshCw,
+  Bot,
+  ShieldCheck
 } from "lucide-react";
 
 const features = [
@@ -17,6 +19,16 @@ const features = [
     icon: Lightbulb,
     title: "Personalized Insights",
     description: "Discover hidden strengths and opportunities you might have overlooked based on your unique profile.",
+  },
+  {
+    icon: Bot,
+    title: "AI-Centric Opportunities",
+    description: "Discover roles that leverage AI tools — prompt engineering, AI consulting, and emerging tech careers matched to your skills.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "AI-Resistant Paths",
+    description: "Find future-proof careers that rely on human judgment, creativity, and interpersonal skills — roles AI can't replace.",
   },
   {
     icon: TrendingUp,
