@@ -119,148 +119,574 @@ export default function Dashboard() {
   const handleExportPDF = async () => {
     if (!results) return;
     
-    toast.info("Generating PDF...");
+    toast.info("Generating your personalized PDF report...");
     
     try {
       const { jsPDF } = await import('jspdf');
       const doc = new jsPDF();
       
       const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
       let y = 20;
       const margin = 15;
-      const lineHeight = 6;
+      const contentWidth = pageWidth - margin * 2;
       
-      const addText = (text: string, fontSize = 10, isBold = false) => {
-        doc.setFontSize(fontSize);
-        doc.setFont("helvetica", isBold ? "bold" : "normal");
-        const lines = doc.splitTextToSize(text, pageWidth - margin * 2);
-        lines.forEach((line: string) => {
-          if (y > 270) {
-            doc.addPage();
-            y = 20;
-          }
-          doc.text(line, margin, y);
-          y += lineHeight;
-        });
+      // Color palette matching app design
+      const colors = {
+        primary: [99, 102, 241] as [number, number, number],      // Indigo
+        primaryDark: [79, 70, 229] as [number, number, number],   // Darker indigo
+        secondary: [241, 245, 249] as [number, number, number],   // Light gray
+        accent: [16, 185, 129] as [number, number, number],       // Green
+        warning: [245, 158, 11] as [number, number, number],      // Amber
+        dark: [15, 23, 42] as [number, number, number],           // Slate 900
+        text: [30, 41, 59] as [number, number, number],           // Slate 800
+        muted: [100, 116, 139] as [number, number, number],       // Slate 500
+        white: [255, 255, 255] as [number, number, number],
+        blue: [59, 130, 246] as [number, number, number],
+        purple: [139, 92, 246] as [number, number, number],
+        teal: [20, 184, 166] as [number, number, number],
       };
       
-      const addSection = (title: string) => {
-        y += 5;
-        if (y > 260) {
+      const checkPageBreak = (neededSpace: number) => {
+        if (y + neededSpace > pageHeight - 20) {
           doc.addPage();
           y = 20;
+          return true;
         }
-        doc.setFillColor(59, 130, 246);
-        doc.rect(margin, y - 5, pageWidth - margin * 2, 8, 'F');
-        doc.setTextColor(255, 255, 255);
-        addText(title, 12, true);
-        doc.setTextColor(0, 0, 0);
-        y += 3;
+        return false;
       };
       
-      // Header
-      doc.setFillColor(17, 24, 39);
-      doc.rect(0, 0, pageWidth, 35, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(24);
+      const addWrappedText = (text: string, x: number, maxWidth: number, fontSize = 10, color = colors.text) => {
+        doc.setFontSize(fontSize);
+        doc.setTextColor(...color);
+        const lines = doc.splitTextToSize(text, maxWidth);
+        lines.forEach((line: string) => {
+          checkPageBreak(6);
+          doc.text(line, x, y);
+          y += fontSize * 0.4 + 2;
+        });
+      };
+      
+      const addSectionHeader = (title: string, icon: string, color: [number, number, number]) => {
+        checkPageBreak(25);
+        y += 8;
+        
+        // Background bar
+        doc.setFillColor(...color);
+        doc.roundedRect(margin, y - 6, contentWidth, 12, 2, 2, 'F');
+        
+        // Title
+        doc.setTextColor(...colors.white);
+        doc.setFontSize(13);
+        doc.setFont("helvetica", "bold");
+        doc.text(`${icon}  ${title}`, margin + 5, y + 2);
+        
+        doc.setTextColor(...colors.text);
+        doc.setFont("helvetica", "normal");
+        y += 14;
+      };
+      
+      const addSubHeader = (title: string) => {
+        checkPageBreak(15);
+        y += 4;
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(...colors.primaryDark);
+        doc.text(title, margin, y);
+        y += 7;
+        doc.setFont("helvetica", "normal");
+      };
+      
+      const addOpportunityCard = (opp: any, index: number, type: string) => {
+        checkPageBreak(50);
+        
+        // Card background
+        doc.setFillColor(...colors.secondary);
+        doc.roundedRect(margin, y - 2, contentWidth, 8, 1, 1, 'F');
+        
+        // Title
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(...colors.dark);
+        doc.text(`${index + 1}. ${opp.title}`, margin + 3, y + 4);
+        y += 12;
+        
+        // Type badge
+        const badgeColors: Record<string, [number, number, number]> = {
+          career: colors.blue,
+          consulting: colors.purple,
+          freelance: [99, 102, 241],
+          rental: colors.warning,
+          "side-hustle": colors.accent,
+          business: [249, 115, 22],
+          creator: [236, 72, 153],
+          "passive-income": colors.teal,
+        };
+        const badgeColor = badgeColors[opp.type] || colors.muted;
+        
+        doc.setFillColor(...badgeColor);
+        doc.roundedRect(margin + 3, y - 4, doc.getTextWidth(opp.type) + 6, 6, 1, 1, 'F');
+        doc.setTextColor(...colors.white);
+        doc.setFontSize(8);
+        doc.text(opp.type.toUpperCase(), margin + 6, y);
+        
+        // Metrics row
+        const diffLabel = { L: "Low", M: "Medium", H: "High" }[opp.difficulty] || opp.difficulty;
+        const incomeLabel = { L: "$0-2k/mo", M: "$2-5k/mo", H: "$5k+/mo" }[opp.income_potential] || opp.income_potential;
+        
+        doc.setTextColor(...colors.muted);
+        doc.setFontSize(8);
+        const metricsY = y;
+        doc.text(`Difficulty: ${diffLabel}`, margin + 35, metricsY);
+        doc.text(`Time: ${opp.time_commitment}`, margin + 70, metricsY);
+        doc.text(`Ramp: ${opp.ramp_time}`, margin + 110, metricsY);
+        doc.text(`Income: ${incomeLabel}`, margin + 145, metricsY);
+        y += 8;
+        
+        // Why it fits
+        if (opp.reason_fit?.length) {
+          doc.setFontSize(9);
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(...colors.text);
+          doc.text("Why This Fits You:", margin + 3, y);
+          y += 5;
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(...colors.muted);
+          opp.reason_fit.forEach((reason: string) => {
+            checkPageBreak(8);
+            doc.setFontSize(8);
+            doc.text(`•  ${reason}`, margin + 5, y);
+            y += 4;
+          });
+        }
+        
+        // Type-specific fields
+        if (type === "ai-centric" && opp.skill_bridge) {
+          y += 2;
+          doc.setFontSize(8);
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(...colors.blue);
+          doc.text("Skill Bridge: ", margin + 3, y);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(...colors.muted);
+          const bridgeWidth = doc.getTextWidth("Skill Bridge: ");
+          addWrappedText(opp.skill_bridge, margin + 3 + bridgeWidth, contentWidth - bridgeWidth - 6, 8, colors.muted);
+          
+          if (opp.competitive_edge) {
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(...colors.blue);
+            doc.text("Competitive Edge: ", margin + 3, y);
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(...colors.muted);
+            const edgeWidth = doc.getTextWidth("Competitive Edge: ");
+            addWrappedText(opp.competitive_edge, margin + 3 + edgeWidth, contentWidth - edgeWidth - 6, 8, colors.muted);
+          }
+          
+          if (opp.entry_points?.length) {
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(...colors.blue);
+            doc.text("Entry Points: ", margin + 3, y);
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(...colors.muted);
+            y += 4;
+            opp.entry_points.forEach((ep: string) => {
+              doc.text(`•  ${ep}`, margin + 5, y);
+              y += 4;
+            });
+          }
+        }
+        
+        if (type === "ai-proof" && opp.human_advantage) {
+          y += 2;
+          doc.setFontSize(8);
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(...colors.accent);
+          doc.text("Human Advantage: ", margin + 3, y);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(...colors.muted);
+          y += 4;
+          addWrappedText(opp.human_advantage, margin + 5, contentWidth - 8, 8, colors.muted);
+          
+          if (opp.monetization_path) {
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(...colors.accent);
+            doc.text("Path to Income: ", margin + 3, y);
+            doc.setFont("helvetica", "normal");
+            y += 4;
+            addWrappedText(opp.monetization_path, margin + 5, contentWidth - 8, 8, colors.muted);
+          }
+        }
+        
+        if (type === "alternative" && opp.resource_leveraged) {
+          y += 2;
+          doc.setFontSize(8);
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(...colors.warning);
+          doc.text("Resource Leveraged: ", margin + 3, y);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(...colors.muted);
+          y += 4;
+          addWrappedText(opp.resource_leveraged, margin + 5, contentWidth - 8, 8, colors.muted);
+          
+          doc.text(`Effort Level: ${opp.effort_level}`, margin + 5, y);
+          y += 4;
+          
+          if (opp.passive_potential) {
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(...colors.warning);
+            doc.text("Passive Potential: ", margin + 3, y);
+            doc.setFont("helvetica", "normal");
+            y += 4;
+            addWrappedText(opp.passive_potential, margin + 5, contentWidth - 8, 8, colors.muted);
+          }
+        }
+        
+        // First 3 steps
+        if (opp.first_3_steps?.length) {
+          y += 2;
+          doc.setFontSize(9);
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(...colors.text);
+          doc.text("First 3 Steps:", margin + 3, y);
+          y += 5;
+          doc.setFont("helvetica", "normal");
+          opp.first_3_steps.forEach((step: string, i: number) => {
+            checkPageBreak(8);
+            doc.setFillColor(...colors.primary);
+            doc.circle(margin + 6, y - 1.5, 2.5, 'F');
+            doc.setTextColor(...colors.white);
+            doc.setFontSize(7);
+            doc.text(`${i + 1}`, margin + 5, y);
+            doc.setTextColor(...colors.muted);
+            doc.setFontSize(8);
+            doc.text(step, margin + 12, y);
+            y += 5;
+          });
+        }
+        
+        y += 6;
+      };
+      
+      // ==================== COVER PAGE ====================
+      // Full background
+      doc.setFillColor(...colors.dark);
+      doc.rect(0, 0, pageWidth, pageHeight, 'F');
+      
+      // Accent stripe
+      doc.setFillColor(...colors.primary);
+      doc.rect(0, 80, pageWidth, 8, 'F');
+      
+      // Logo/Brand
+      doc.setTextColor(...colors.white);
+      doc.setFontSize(36);
       doc.setFont("helvetica", "bold");
-      doc.text("NextMove Assessment", margin, 20);
-      doc.setFontSize(10);
+      doc.text("NextMove", margin, 55);
+      
+      doc.setFontSize(14);
       doc.setFont("helvetica", "normal");
-      doc.text(`Generated: ${new Date().toLocaleDateString()}`, margin, 28);
-      doc.setTextColor(0, 0, 0);
-      y = 45;
+      doc.setTextColor(...colors.muted);
+      doc.text("Your Personalized Career Assessment", margin, 68);
       
-      // Profile Summary
+      // Profile headline
+      if (results.profile_summary?.headline) {
+        doc.setTextColor(...colors.white);
+        doc.setFontSize(18);
+        doc.setFont("helvetica", "bold");
+        const headlineLines = doc.splitTextToSize(results.profile_summary.headline, contentWidth);
+        let headlineY = 110;
+        headlineLines.forEach((line: string) => {
+          doc.text(line, margin, headlineY);
+          headlineY += 10;
+        });
+      }
+      
+      // Stats boxes
+      const statsY = 160;
+      const boxWidth = (contentWidth - 15) / 4;
+      const stats = [
+        { label: "Opportunities", value: results.recommendations?.length || 0, color: colors.primary },
+        { label: "AI Roles", value: results.ai_centric_opportunities?.length || 0, color: colors.blue },
+        { label: "AI-Proof", value: results.ai_proof_opportunities?.length || 0, color: colors.accent },
+        { label: "Resource Paths", value: results.alternative_paths?.length || 0, color: colors.warning },
+      ];
+      
+      stats.forEach((stat, i) => {
+        const boxX = margin + i * (boxWidth + 5);
+        doc.setFillColor(...stat.color);
+        doc.roundedRect(boxX, statsY, boxWidth, 35, 3, 3, 'F');
+        
+        doc.setTextColor(...colors.white);
+        doc.setFontSize(24);
+        doc.setFont("helvetica", "bold");
+        doc.text(String(stat.value), boxX + boxWidth / 2, statsY + 18, { align: "center" });
+        
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "normal");
+        doc.text(stat.label, boxX + boxWidth / 2, statsY + 28, { align: "center" });
+      });
+      
+      // Date and details
+      doc.setTextColor(...colors.muted);
+      doc.setFontSize(10);
+      doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`, margin, 220);
+      
       if (results.profile_summary) {
-        addSection("Profile Summary");
-        addText(results.profile_summary.headline, 11, true);
-        y += 2;
-        addText(`Experience: ${results.profile_summary.experience_level}`);
-        addText(`Top Skills: ${results.profile_summary.top_skills?.join(", ")}`);
-        addText(`Best Fit: ${results.profile_summary.best_fit_types?.join(", ")}`);
+        doc.text(`Experience Level: ${results.profile_summary.experience_level}`, margin, 230);
+        doc.text(`Best Fit Types: ${results.profile_summary.best_fit_types?.join(", ")}`, margin, 240);
       }
       
-      // Recommendations
+      // Top skills
+      if (results.profile_summary?.top_skills?.length) {
+        doc.setTextColor(...colors.white);
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.text("Top Skills", margin, 260);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(...colors.muted);
+        const skillsText = results.profile_summary.top_skills.join("  •  ");
+        const skillLines = doc.splitTextToSize(skillsText, contentWidth);
+        let skillY = 268;
+        skillLines.forEach((line: string) => {
+          doc.text(line, margin, skillY);
+          skillY += 6;
+        });
+      }
+      
+      // ==================== PAGE 2+: CONTENT ====================
+      doc.addPage();
+      doc.setFillColor(...colors.white);
+      doc.rect(0, 0, pageWidth, pageHeight, 'F');
+      y = 20;
+      
+      // Encouragement
+      if (results.success_plan?.encouragement_summary) {
+        doc.setFillColor(254, 243, 199); // Amber 100
+        doc.roundedRect(margin, y, contentWidth, 25, 3, 3, 'F');
+        doc.setTextColor(...colors.warning);
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "italic");
+        const encourageLines = doc.splitTextToSize(`"${results.success_plan.encouragement_summary}"`, contentWidth - 10);
+        let ey = y + 8;
+        encourageLines.forEach((line: string) => {
+          doc.text(line, margin + 5, ey);
+          ey += 5;
+        });
+        y += 30;
+      }
+      
+      // Low Hanging Fruit
+      if (results.low_hanging_fruit?.length) {
+        addSectionHeader("Quick Wins - Start Here", "🚀", colors.accent);
+        results.low_hanging_fruit.forEach((item, i) => {
+          checkPageBreak(8);
+          doc.setFillColor(...colors.accent);
+          doc.circle(margin + 4, y - 1, 2, 'F');
+          doc.setTextColor(...colors.text);
+          doc.setFontSize(10);
+          doc.text(item, margin + 10, y);
+          y += 7;
+        });
+        y += 5;
+      }
+      
+      // Main Recommendations
       if (results.recommendations?.length) {
-        addSection(`Career Opportunities (${results.recommendations.length})`);
-        results.recommendations.forEach((opp, i) => {
-          y += 2;
-          addText(`${i + 1}. ${opp.title}`, 10, true);
-          addText(`   Type: ${opp.type} | Difficulty: ${opp.difficulty} | Income: ${opp.income_potential}`);
-          addText(`   Time: ${opp.time_commitment} | Ramp: ${opp.ramp_time}`);
-          opp.reason_fit?.slice(0, 2).forEach(r => addText(`   • ${r}`));
-        });
+        addSectionHeader(`Career Opportunities (${results.recommendations.length})`, "🎯", colors.primary);
+        results.recommendations.forEach((opp, i) => addOpportunityCard(opp, i, "main"));
       }
       
-      // AI-Centric Opportunities
+      // AI-Centric
       if (results.ai_centric_opportunities?.length) {
-        addSection(`AI-Centric Opportunities (${results.ai_centric_opportunities.length})`);
-        results.ai_centric_opportunities.forEach((opp, i) => {
-          y += 2;
-          addText(`${i + 1}. ${opp.title}`, 10, true);
-          addText(`   Skill Bridge: ${opp.skill_bridge}`);
-          opp.first_3_steps?.slice(0, 2).forEach((s, j) => addText(`   ${j + 1}. ${s}`));
-        });
+        addSectionHeader(`AI-Centric Opportunities (${results.ai_centric_opportunities.length})`, "🧠", colors.blue);
+        doc.setFontSize(9);
+        doc.setTextColor(...colors.muted);
+        doc.text("Roles that leverage AI tools and your existing skills", margin, y);
+        y += 8;
+        results.ai_centric_opportunities.forEach((opp, i) => addOpportunityCard(opp, i, "ai-centric"));
       }
       
-      // AI-Proof Opportunities
+      // AI-Proof
       if (results.ai_proof_opportunities?.length) {
-        addSection(`AI-Proof Opportunities (${results.ai_proof_opportunities.length})`);
-        results.ai_proof_opportunities.forEach((opp, i) => {
-          y += 2;
-          addText(`${i + 1}. ${opp.title}`, 10, true);
-          addText(`   Human Advantage: ${opp.human_advantage}`);
-        });
+        addSectionHeader(`AI-Proof Opportunities (${results.ai_proof_opportunities.length})`, "🛡️", colors.accent);
+        doc.setFontSize(9);
+        doc.setTextColor(...colors.muted);
+        doc.text("Automation-resistant roles based on your human strengths", margin, y);
+        y += 8;
+        results.ai_proof_opportunities.forEach((opp, i) => addOpportunityCard(opp, i, "ai-proof"));
       }
       
       // Alternative Paths
       if (results.alternative_paths?.length) {
-        addSection(`Alternative Paths (${results.alternative_paths.length})`);
-        results.alternative_paths.forEach((opp, i) => {
-          y += 2;
-          addText(`${i + 1}. ${opp.title}`, 10, true);
-          addText(`   Resource: ${opp.resource_leveraged}`);
-          addText(`   Effort: ${opp.effort_level} | Passive: ${opp.passive_potential}`);
+        addSectionHeader(`Alternative Paths & Resource Opportunities (${results.alternative_paths.length})`, "💡", colors.warning);
+        doc.setFontSize(9);
+        doc.setTextColor(...colors.muted);
+        doc.text("Ways to leverage your existing resources, assets, and interests", margin, y);
+        y += 8;
+        results.alternative_paths.forEach((opp, i) => addOpportunityCard(opp, i, "alternative"));
+      }
+      
+      // ==================== SUCCESS PLAN ====================
+      addSectionHeader("Your 30-Day Success Plan", "⭐", colors.purple);
+      
+      // Strengths
+      if (results.success_plan?.strengths?.length) {
+        addSubHeader("Your Key Strengths");
+        doc.setFillColor(254, 249, 195); // Yellow 100
+        doc.roundedRect(margin, y - 4, contentWidth, 6 + Math.ceil(results.success_plan.strengths.length / 3) * 8, 2, 2, 'F');
+        doc.setFontSize(9);
+        doc.setTextColor(...colors.text);
+        
+        const strengthsPerRow = 3;
+        const strengthWidth = (contentWidth - 10) / strengthsPerRow;
+        results.success_plan.strengths.forEach((strength, i) => {
+          const row = Math.floor(i / strengthsPerRow);
+          const col = i % strengthsPerRow;
+          doc.text(`★ ${strength}`, margin + 5 + col * strengthWidth, y + row * 7);
+        });
+        y += Math.ceil(results.success_plan.strengths.length / strengthsPerRow) * 7 + 8;
+      }
+      
+      // Skill Gaps
+      if (results.success_plan?.skill_gaps?.length) {
+        addSubHeader("Skills to Develop");
+        results.success_plan.skill_gaps.forEach((skill) => {
+          checkPageBreak(8);
+          doc.setFillColor(...colors.secondary);
+          doc.roundedRect(margin, y - 4, doc.getTextWidth(skill) + 10, 7, 2, 2, 'F');
+          doc.setFontSize(9);
+          doc.setTextColor(...colors.text);
+          doc.text(skill, margin + 5, y);
+          y += 10;
+        });
+        y += 5;
+      }
+      
+      // Fast Wins
+      if (results.success_plan?.fast_wins?.length) {
+        addSubHeader("7-Day Fast Wins");
+        results.success_plan.fast_wins.forEach((win, i) => {
+          checkPageBreak(10);
+          doc.setFillColor(...colors.accent);
+          doc.circle(margin + 4, y - 1, 3, 'F');
+          doc.setTextColor(...colors.white);
+          doc.setFontSize(8);
+          doc.text("✓", margin + 2.5, y);
+          doc.setTextColor(...colors.text);
+          doc.setFontSize(9);
+          const winLines = doc.splitTextToSize(win, contentWidth - 15);
+          winLines.forEach((line: string, li: number) => {
+            doc.text(line, margin + 10, y + li * 5);
+          });
+          y += winLines.length * 5 + 3;
+        });
+        y += 5;
+      }
+      
+      // 30-Day Plan
+      if (results.success_plan?.thirty_day_plan?.length) {
+        addSubHeader("Week-by-Week 30-Day Plan");
+        
+        results.success_plan.thirty_day_plan.forEach((week) => {
+          checkPageBreak(40);
+          
+          // Week header
+          doc.setFillColor(...colors.primary);
+          doc.roundedRect(margin, y - 4, contentWidth, 10, 2, 2, 'F');
+          doc.setTextColor(...colors.white);
+          doc.setFontSize(10);
+          doc.setFont("helvetica", "bold");
+          doc.text(`Week ${week.week}: ${week.focus}`, margin + 5, y + 2);
+          y += 14;
+          
+          doc.setFont("helvetica", "normal");
+          week.tasks?.forEach((task) => {
+            checkPageBreak(8);
+            doc.setFontSize(9);
+            doc.setTextColor(...colors.muted);
+            doc.text("•", margin + 5, y);
+            doc.setTextColor(...colors.text);
+            const taskLines = doc.splitTextToSize(task, contentWidth - 15);
+            taskLines.forEach((line: string, i: number) => {
+              doc.text(line, margin + 10, y + i * 5);
+            });
+            y += taskLines.length * 5 + 2;
+          });
+          y += 6;
         });
       }
       
-      // Success Plan
-      if (results.success_plan) {
-        addSection("Success Plan");
-        
-        if (results.success_plan.strengths?.length) {
-          y += 2;
-          addText("Your Strengths:", 10, true);
-          addText(results.success_plan.strengths.join(", "));
-        }
-        
-        if (results.success_plan.skill_gaps?.length) {
-          y += 2;
-          addText("Skills to Develop:", 10, true);
-          addText(results.success_plan.skill_gaps.join(", "));
-        }
-        
-        if (results.success_plan.fast_wins?.length) {
-          y += 2;
-          addText("7-Day Fast Wins:", 10, true);
-          results.success_plan.fast_wins.forEach(w => addText(`• ${w}`));
-        }
-        
-        if (results.success_plan.thirty_day_plan?.length) {
-          y += 2;
-          addText("30-Day Plan:", 10, true);
-          results.success_plan.thirty_day_plan.forEach(week => {
-            addText(`Week ${week.week}: ${week.focus}`, 9, true);
-            week.tasks?.forEach(t => addText(`  • ${t}`));
+      // Quickest Path to Income
+      if (results.success_plan?.quickest_path_to_income?.length) {
+        addSubHeader("Quickest Path to Income");
+        results.success_plan.quickest_path_to_income.forEach((path) => {
+          checkPageBreak(30);
+          
+          doc.setFillColor(209, 250, 229); // Green 100
+          doc.roundedRect(margin, y - 4, contentWidth, 8, 2, 2, 'F');
+          doc.setFontSize(10);
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(...colors.accent);
+          doc.text(path.opportunity, margin + 5, y + 1);
+          doc.setFontSize(8);
+          doc.setFont("helvetica", "normal");
+          doc.text(`Timeline: ${path.timeline}`, margin + contentWidth - 40, y + 1);
+          y += 12;
+          
+          path.steps?.forEach((step, i) => {
+            checkPageBreak(8);
+            doc.setFillColor(...colors.accent);
+            doc.circle(margin + 6, y - 1.5, 2.5, 'F');
+            doc.setTextColor(...colors.white);
+            doc.setFontSize(7);
+            doc.text(`${i + 1}`, margin + 5, y);
+            doc.setTextColor(...colors.text);
+            doc.setFontSize(9);
+            doc.text(step, margin + 12, y);
+            y += 6;
           });
-        }
-        
-        if (results.success_plan.encouragement_summary) {
-          y += 4;
-          addText(results.success_plan.encouragement_summary, 10);
-        }
+          y += 6;
+        });
       }
+      
+      // Long Term Bets
+      if (results.success_plan?.best_long_term_bets?.length) {
+        addSubHeader("Best Long-Term Bets");
+        results.success_plan.best_long_term_bets.forEach((bet) => {
+          checkPageBreak(25);
+          
+          doc.setFillColor(219, 234, 254); // Blue 100
+          doc.roundedRect(margin, y - 4, contentWidth, 22, 2, 2, 'F');
+          
+          doc.setFontSize(10);
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(...colors.blue);
+          doc.text(bet.opportunity, margin + 5, y + 2);
+          
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(8);
+          doc.setTextColor(...colors.text);
+          const whyLines = doc.splitTextToSize(bet.why, contentWidth - 10);
+          doc.text(whyLines[0], margin + 5, y + 9);
+          
+          doc.setTextColor(...colors.primary);
+          doc.setFont("helvetica", "bold");
+          doc.text(`Potential: ${bet.potential}`, margin + 5, y + 16);
+          
+          y += 28;
+        });
+      }
+      
+      // ==================== FOOTER ON LAST PAGE ====================
+      checkPageBreak(30);
+      y = pageHeight - 25;
+      doc.setDrawColor(...colors.secondary);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 8;
+      doc.setFontSize(8);
+      doc.setTextColor(...colors.muted);
+      doc.text("Generated by NextMove - Your AI-Powered Career Discovery Platform", pageWidth / 2, y, { align: "center" });
+      doc.text(`© ${new Date().getFullYear()} NextMove. All rights reserved.`, pageWidth / 2, y + 5, { align: "center" });
       
       doc.save("nextmove-assessment.pdf");
       toast.success("PDF exported successfully!");
