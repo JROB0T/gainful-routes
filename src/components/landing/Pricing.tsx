@@ -71,7 +71,7 @@ export function Pricing() {
             </Button>
 
             <p className="text-center text-sm text-muted-foreground mt-4">
-              Secure payment via Stripe. Cancel anytime.
+              Secure one-time payment via Stripe. No subscription.
             </p>
           </div>
         </div>
