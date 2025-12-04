@@ -6,18 +6,54 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Step1BasicInfo } from "@/components/wizard/Step1BasicInfo";
 import { Step2Upload } from "@/components/wizard/Step2Upload";
+import { Step3Skills } from "@/components/wizard/Step3Skills";
+import { Step4Personality } from "@/components/wizard/Step4Personality";
+import { Step5Constraints } from "@/components/wizard/Step5Constraints";
+import { Step6Assets } from "@/components/wizard/Step6Assets";
+import { Step7Goals } from "@/components/wizard/Step7Goals";
 import { TeaserPreview } from "@/components/wizard/TeaserPreview";
 import { WizardProgress } from "@/components/wizard/WizardProgress";
 
 export type WizardData = {
+  // Step 1
   firstName: string;
   state: string;
   city: string;
   situation: string;
+  // Step 2
   linkedinUrl: string;
   twitterUrl: string;
   portfolioUrl: string;
   resumeText: string;
+  // Step 3
+  skills: string[];
+  interests: string[];
+  helpTopics: string;
+  enjoyWithoutPay: string;
+  // Step 4
+  workTypes: string[];
+  structurePreference: number;
+  riskTolerance: number;
+  balanceVsIncome: number;
+  // Step 5
+  timeAvailable: string;
+  workSetting: string;
+  hasCaregiver: boolean;
+  caregiverDetails: string;
+  avoidIndustries: string[];
+  // Step 6
+  ownsHome: boolean;
+  hasExtraSpace: boolean;
+  extraSpaceDetails: string;
+  capitalAvailable: string;
+  physicalAssets: string[];
+  digitalAssets: string[];
+  credentials: string[];
+  networkStrength: string;
+  // Step 7
+  incomePaths: string[];
+  incomeType: string;
+  timeline: string;
 };
 
 const initialData: WizardData = {
@@ -29,6 +65,30 @@ const initialData: WizardData = {
   twitterUrl: "",
   portfolioUrl: "",
   resumeText: "",
+  skills: [],
+  interests: [],
+  helpTopics: "",
+  enjoyWithoutPay: "",
+  workTypes: [],
+  structurePreference: 3,
+  riskTolerance: 3,
+  balanceVsIncome: 3,
+  timeAvailable: "",
+  workSetting: "",
+  hasCaregiver: false,
+  caregiverDetails: "",
+  avoidIndustries: [],
+  ownsHome: false,
+  hasExtraSpace: false,
+  extraSpaceDetails: "",
+  capitalAvailable: "",
+  physicalAssets: [],
+  digitalAssets: [],
+  credentials: [],
+  networkStrength: "",
+  incomePaths: [],
+  incomeType: "",
+  timeline: "",
 };
 
 export default function GetStarted() {
@@ -39,6 +99,8 @@ export default function GetStarted() {
   const [isLoading, setIsLoading] = useState(true);
   const [aiAnalysis, setAiAnalysis] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [hasPaid, setHasPaid] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -60,7 +122,7 @@ export default function GetStarted() {
   };
 
   const handleNext = () => {
-    if (step < 3) {
+    if (step < 8) {
       setStep(step + 1);
     }
   };
@@ -86,10 +148,35 @@ export default function GetStarted() {
         opportunityPaths: 8,
         assetsFound: true,
       });
+      // Auto-fill some fields from "AI extraction"
+      updateData({
+        skills: ["Project Management", "Communication", "Leadership"],
+        interests: ["Technology", "Consulting"],
+        credentials: ["MBA", "PMP Certification"],
+      });
       setIsAnalyzing(false);
-      setStep(3);
+      setStep(3); // Go to teaser for free users, or step 3 if paid
     }, 2000);
   };
+
+  const handleBypassPayment = () => {
+    setHasPaid(true);
+    toast.success("Payment bypassed for testing - Full access granted!");
+  };
+
+  const handleGenerateOpportunities = async () => {
+    setIsGenerating(true);
+    // Simulate AI generation
+    setTimeout(() => {
+      setIsGenerating(false);
+      toast.success("Your personalized opportunities are ready!");
+      navigate("/dashboard?test=true");
+    }, 3000);
+  };
+
+  // Determine total steps based on payment status
+  const totalSteps = hasPaid ? 7 : 3;
+  const displayStep = hasPaid ? step : Math.min(step, 3);
 
   if (isLoading) {
     return (
@@ -132,8 +219,20 @@ export default function GetStarted() {
           )}
         </div>
 
+        {/* Test bypass banner */}
+        {!hasPaid && (
+          <div className="mb-6 p-3 rounded-lg bg-warning/10 border border-warning/30 flex items-center justify-between">
+            <span className="text-sm text-warning-foreground">
+              Testing mode: Bypass payment to test full flow
+            </span>
+            <Button variant="outline" size="sm" onClick={handleBypassPayment}>
+              Bypass Payment
+            </Button>
+          </div>
+        )}
+
         {/* Progress */}
-        <WizardProgress currentStep={step} totalSteps={3} />
+        <WizardProgress currentStep={displayStep} totalSteps={totalSteps} />
 
         {/* Step content */}
         <div className="bg-card rounded-2xl border border-border shadow-xl p-6 md:p-8 mt-8">
@@ -144,6 +243,7 @@ export default function GetStarted() {
               onNext={handleNext}
             />
           )}
+          
           {step === 2 && (
             <Step2Upload
               data={data}
@@ -153,11 +253,89 @@ export default function GetStarted() {
               isAnalyzing={isAnalyzing}
             />
           )}
-          {step === 3 && (
+          
+          {step === 3 && !hasPaid && (
             <TeaserPreview
               analysis={aiAnalysis}
               onBack={handleBack}
               isLoggedIn={isLoggedIn}
+              onBypassPayment={handleBypassPayment}
+            />
+          )}
+
+          {/* Paid user steps */}
+          {hasPaid && step === 3 && (
+            <Step3Skills
+              data={{
+                skills: data.skills,
+                interests: data.interests,
+                helpTopics: data.helpTopics,
+                enjoyWithoutPay: data.enjoyWithoutPay,
+              }}
+              updateData={updateData}
+              onNext={handleNext}
+              onBack={handleBack}
+            />
+          )}
+
+          {hasPaid && step === 4 && (
+            <Step4Personality
+              data={{
+                workTypes: data.workTypes,
+                structurePreference: data.structurePreference,
+                riskTolerance: data.riskTolerance,
+                balanceVsIncome: data.balanceVsIncome,
+              }}
+              updateData={updateData}
+              onNext={handleNext}
+              onBack={handleBack}
+            />
+          )}
+
+          {hasPaid && step === 5 && (
+            <Step5Constraints
+              data={{
+                timeAvailable: data.timeAvailable,
+                workSetting: data.workSetting,
+                hasCaregiver: data.hasCaregiver,
+                caregiverDetails: data.caregiverDetails,
+                avoidIndustries: data.avoidIndustries,
+              }}
+              updateData={updateData}
+              onNext={handleNext}
+              onBack={handleBack}
+            />
+          )}
+
+          {hasPaid && step === 6 && (
+            <Step6Assets
+              data={{
+                ownsHome: data.ownsHome,
+                hasExtraSpace: data.hasExtraSpace,
+                extraSpaceDetails: data.extraSpaceDetails,
+                capitalAvailable: data.capitalAvailable,
+                physicalAssets: data.physicalAssets,
+                digitalAssets: data.digitalAssets,
+                credentials: data.credentials,
+                networkStrength: data.networkStrength,
+              }}
+              updateData={updateData}
+              onNext={handleNext}
+              onBack={handleBack}
+            />
+          )}
+
+          {hasPaid && step === 7 && (
+            <Step7Goals
+              data={{
+                incomePaths: data.incomePaths,
+                incomeType: data.incomeType,
+                timeline: data.timeline,
+              }}
+              updateData={updateData}
+              onBack={handleBack}
+              onSubmit={handleGenerateOpportunities}
+              isSubmitting={isGenerating}
             />
           )}
         </div>
