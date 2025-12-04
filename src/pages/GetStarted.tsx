@@ -218,7 +218,7 @@ export default function GetStarted() {
       const result = await response.json();
       
       // Store results in sessionStorage for dashboard
-      sessionStorage.setItem("nextmove_results", JSON.stringify(result.data));
+      sessionStorage.setItem("careermovr_results", JSON.stringify(result.data));
       
       toast.success("Your personalized opportunities are ready!");
       navigate("/dashboard?generated=true");
@@ -265,7 +265,7 @@ export default function GetStarted() {
             <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
               <Compass className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="font-display font-bold text-lg text-foreground">NextMove</span>
+            <span className="font-display font-bold text-lg text-foreground">CareerMovr</span>
           </div>
 
           {!isLoggedIn && (

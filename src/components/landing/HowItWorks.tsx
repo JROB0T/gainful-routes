@@ -33,7 +33,7 @@ export function HowItWorks() {
       <div className="container px-4 md:px-6">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold mb-4">
-            How <span className="text-gradient-primary">NextMove</span> Works
+            How <span className="text-gradient-primary">CareerMovr</span> Works
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             From upload to action plan in under 10 minutes
