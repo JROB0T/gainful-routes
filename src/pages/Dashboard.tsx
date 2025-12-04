@@ -167,7 +167,7 @@ export default function Dashboard() {
         });
       };
       
-      const addSectionHeader = (title: string, icon: string, color: [number, number, number]) => {
+      const addSectionHeader = (title: string, color: [number, number, number]) => {
         checkPageBreak(25);
         y += 8;
         
@@ -179,7 +179,7 @@ export default function Dashboard() {
         doc.setTextColor(...colors.white);
         doc.setFontSize(13);
         doc.setFont("helvetica", "bold");
-        doc.text(`${icon}  ${title}`, margin + 5, y + 2);
+        doc.text(title, margin + 5, y + 2);
         
         doc.setTextColor(...colors.text);
         doc.setFont("helvetica", "normal");
@@ -255,7 +255,7 @@ export default function Dashboard() {
           opp.reason_fit.forEach((reason: string) => {
             checkPageBreak(8);
             doc.setFontSize(8);
-            doc.text(`•  ${reason}`, margin + 5, y);
+            doc.text(`-  ${reason}`, margin + 5, y);
             y += 4;
           });
         }
@@ -290,7 +290,7 @@ export default function Dashboard() {
             doc.setTextColor(...colors.muted);
             y += 4;
             opp.entry_points.forEach((ep: string) => {
-              doc.text(`•  ${ep}`, margin + 5, y);
+              doc.text(`-  ${ep}`, margin + 5, y);
               y += 4;
             });
           }
@@ -444,7 +444,7 @@ export default function Dashboard() {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
         doc.setTextColor(...colors.muted);
-        const skillsText = results.profile_summary.top_skills.join("  •  ");
+        const skillsText = results.profile_summary.top_skills.join("  |  ");
         const skillLines = doc.splitTextToSize(skillsText, contentWidth);
         let skillY = 268;
         skillLines.forEach((line: string) => {
@@ -477,7 +477,7 @@ export default function Dashboard() {
       
       // Low Hanging Fruit
       if (results.low_hanging_fruit?.length) {
-        addSectionHeader("Quick Wins - Start Here", "🚀", colors.accent);
+        addSectionHeader("Quick Wins - Start Here", colors.accent);
         results.low_hanging_fruit.forEach((item, i) => {
           checkPageBreak(8);
           doc.setFillColor(...colors.accent);
@@ -492,13 +492,13 @@ export default function Dashboard() {
       
       // Main Recommendations
       if (results.recommendations?.length) {
-        addSectionHeader(`Career Opportunities (${results.recommendations.length})`, "🎯", colors.primary);
+        addSectionHeader(`Career Opportunities (${results.recommendations.length})`, colors.primary);
         results.recommendations.forEach((opp, i) => addOpportunityCard(opp, i, "main"));
       }
       
       // AI-Centric
       if (results.ai_centric_opportunities?.length) {
-        addSectionHeader(`AI-Centric Opportunities (${results.ai_centric_opportunities.length})`, "🧠", colors.blue);
+        addSectionHeader(`AI-Centric Opportunities (${results.ai_centric_opportunities.length})`, colors.blue);
         doc.setFontSize(9);
         doc.setTextColor(...colors.muted);
         doc.text("Roles that leverage AI tools and your existing skills", margin, y);
@@ -508,7 +508,7 @@ export default function Dashboard() {
       
       // AI-Proof
       if (results.ai_proof_opportunities?.length) {
-        addSectionHeader(`AI-Proof Opportunities (${results.ai_proof_opportunities.length})`, "🛡️", colors.accent);
+        addSectionHeader(`AI-Proof Opportunities (${results.ai_proof_opportunities.length})`, colors.accent);
         doc.setFontSize(9);
         doc.setTextColor(...colors.muted);
         doc.text("Automation-resistant roles based on your human strengths", margin, y);
@@ -518,7 +518,7 @@ export default function Dashboard() {
       
       // Alternative Paths
       if (results.alternative_paths?.length) {
-        addSectionHeader(`Alternative Paths & Resource Opportunities (${results.alternative_paths.length})`, "💡", colors.warning);
+        addSectionHeader(`Alternative Paths & Resource Opportunities (${results.alternative_paths.length})`, colors.warning);
         doc.setFontSize(9);
         doc.setTextColor(...colors.muted);
         doc.text("Ways to leverage your existing resources, assets, and interests", margin, y);
@@ -527,7 +527,7 @@ export default function Dashboard() {
       }
       
       // ==================== SUCCESS PLAN ====================
-      addSectionHeader("Your 30-Day Success Plan", "⭐", colors.purple);
+      addSectionHeader("Your 30-Day Success Plan", colors.purple);
       
       // Strengths
       if (results.success_plan?.strengths?.length) {
@@ -542,7 +542,7 @@ export default function Dashboard() {
         results.success_plan.strengths.forEach((strength, i) => {
           const row = Math.floor(i / strengthsPerRow);
           const col = i % strengthsPerRow;
-          doc.text(`★ ${strength}`, margin + 5 + col * strengthWidth, y + row * 7);
+          doc.text(`> ${strength}`, margin + 5 + col * strengthWidth, y + row * 7);
         });
         y += Math.ceil(results.success_plan.strengths.length / strengthsPerRow) * 7 + 8;
       }
@@ -571,7 +571,7 @@ export default function Dashboard() {
           doc.circle(margin + 4, y - 1, 3, 'F');
           doc.setTextColor(...colors.white);
           doc.setFontSize(8);
-          doc.text("✓", margin + 2.5, y);
+          doc.text("", margin + 2.5, y);
           doc.setTextColor(...colors.text);
           doc.setFontSize(9);
           const winLines = doc.splitTextToSize(win, contentWidth - 15);
@@ -604,7 +604,7 @@ export default function Dashboard() {
             checkPageBreak(8);
             doc.setFontSize(9);
             doc.setTextColor(...colors.muted);
-            doc.text("•", margin + 5, y);
+            doc.text("-", margin + 5, y);
             doc.setTextColor(...colors.text);
             const taskLines = doc.splitTextToSize(task, contentWidth - 15);
             taskLines.forEach((line: string, i: number) => {
