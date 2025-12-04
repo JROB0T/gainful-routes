@@ -116,16 +116,158 @@ export default function Dashboard() {
     navigate("/");
   };
 
-  const handleExport = () => {
+  const handleExportPDF = async () => {
     if (!results) return;
-    const content = JSON.stringify(results, null, 2);
-    const blob = new Blob([content], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "nextmove-assessment.json";
-    a.click();
-    toast.success("Assessment exported!");
+    
+    toast.info("Generating PDF...");
+    
+    try {
+      const { jsPDF } = await import('jspdf');
+      const doc = new jsPDF();
+      
+      const pageWidth = doc.internal.pageSize.getWidth();
+      let y = 20;
+      const margin = 15;
+      const lineHeight = 6;
+      
+      const addText = (text: string, fontSize = 10, isBold = false) => {
+        doc.setFontSize(fontSize);
+        doc.setFont("helvetica", isBold ? "bold" : "normal");
+        const lines = doc.splitTextToSize(text, pageWidth - margin * 2);
+        lines.forEach((line: string) => {
+          if (y > 270) {
+            doc.addPage();
+            y = 20;
+          }
+          doc.text(line, margin, y);
+          y += lineHeight;
+        });
+      };
+      
+      const addSection = (title: string) => {
+        y += 5;
+        if (y > 260) {
+          doc.addPage();
+          y = 20;
+        }
+        doc.setFillColor(59, 130, 246);
+        doc.rect(margin, y - 5, pageWidth - margin * 2, 8, 'F');
+        doc.setTextColor(255, 255, 255);
+        addText(title, 12, true);
+        doc.setTextColor(0, 0, 0);
+        y += 3;
+      };
+      
+      // Header
+      doc.setFillColor(17, 24, 39);
+      doc.rect(0, 0, pageWidth, 35, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(24);
+      doc.setFont("helvetica", "bold");
+      doc.text("NextMove Assessment", margin, 20);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Generated: ${new Date().toLocaleDateString()}`, margin, 28);
+      doc.setTextColor(0, 0, 0);
+      y = 45;
+      
+      // Profile Summary
+      if (results.profile_summary) {
+        addSection("Profile Summary");
+        addText(results.profile_summary.headline, 11, true);
+        y += 2;
+        addText(`Experience: ${results.profile_summary.experience_level}`);
+        addText(`Top Skills: ${results.profile_summary.top_skills?.join(", ")}`);
+        addText(`Best Fit: ${results.profile_summary.best_fit_types?.join(", ")}`);
+      }
+      
+      // Recommendations
+      if (results.recommendations?.length) {
+        addSection(`Career Opportunities (${results.recommendations.length})`);
+        results.recommendations.forEach((opp, i) => {
+          y += 2;
+          addText(`${i + 1}. ${opp.title}`, 10, true);
+          addText(`   Type: ${opp.type} | Difficulty: ${opp.difficulty} | Income: ${opp.income_potential}`);
+          addText(`   Time: ${opp.time_commitment} | Ramp: ${opp.ramp_time}`);
+          opp.reason_fit?.slice(0, 2).forEach(r => addText(`   • ${r}`));
+        });
+      }
+      
+      // AI-Centric Opportunities
+      if (results.ai_centric_opportunities?.length) {
+        addSection(`AI-Centric Opportunities (${results.ai_centric_opportunities.length})`);
+        results.ai_centric_opportunities.forEach((opp, i) => {
+          y += 2;
+          addText(`${i + 1}. ${opp.title}`, 10, true);
+          addText(`   Skill Bridge: ${opp.skill_bridge}`);
+          opp.first_3_steps?.slice(0, 2).forEach((s, j) => addText(`   ${j + 1}. ${s}`));
+        });
+      }
+      
+      // AI-Proof Opportunities
+      if (results.ai_proof_opportunities?.length) {
+        addSection(`AI-Proof Opportunities (${results.ai_proof_opportunities.length})`);
+        results.ai_proof_opportunities.forEach((opp, i) => {
+          y += 2;
+          addText(`${i + 1}. ${opp.title}`, 10, true);
+          addText(`   Human Advantage: ${opp.human_advantage}`);
+        });
+      }
+      
+      // Alternative Paths
+      if (results.alternative_paths?.length) {
+        addSection(`Alternative Paths (${results.alternative_paths.length})`);
+        results.alternative_paths.forEach((opp, i) => {
+          y += 2;
+          addText(`${i + 1}. ${opp.title}`, 10, true);
+          addText(`   Resource: ${opp.resource_leveraged}`);
+          addText(`   Effort: ${opp.effort_level} | Passive: ${opp.passive_potential}`);
+        });
+      }
+      
+      // Success Plan
+      if (results.success_plan) {
+        addSection("Success Plan");
+        
+        if (results.success_plan.strengths?.length) {
+          y += 2;
+          addText("Your Strengths:", 10, true);
+          addText(results.success_plan.strengths.join(", "));
+        }
+        
+        if (results.success_plan.skill_gaps?.length) {
+          y += 2;
+          addText("Skills to Develop:", 10, true);
+          addText(results.success_plan.skill_gaps.join(", "));
+        }
+        
+        if (results.success_plan.fast_wins?.length) {
+          y += 2;
+          addText("7-Day Fast Wins:", 10, true);
+          results.success_plan.fast_wins.forEach(w => addText(`• ${w}`));
+        }
+        
+        if (results.success_plan.thirty_day_plan?.length) {
+          y += 2;
+          addText("30-Day Plan:", 10, true);
+          results.success_plan.thirty_day_plan.forEach(week => {
+            addText(`Week ${week.week}: ${week.focus}`, 9, true);
+            week.tasks?.forEach(t => addText(`  • ${t}`));
+          });
+        }
+        
+        if (results.success_plan.encouragement_summary) {
+          y += 4;
+          addText(results.success_plan.encouragement_summary, 10);
+        }
+      }
+      
+      doc.save("nextmove-assessment.pdf");
+      toast.success("PDF exported successfully!");
+    } catch (error) {
+      console.error("PDF export error:", error);
+      toast.error("Failed to export PDF");
+    }
   };
 
   const getTypeColor = (type: string) => {
@@ -400,9 +542,9 @@ export default function Dashboard() {
               <NavItem id="success-plan" label="Success Plan" icon={Star} />
               
               <div className="pt-4 border-t border-border mt-4">
-                <Button variant="outline" size="sm" className="w-full" onClick={handleExport}>
+                <Button variant="outline" size="sm" className="w-full" onClick={handleExportPDF}>
                   <Download className="w-4 h-4 mr-2" />
-                  Export Results
+                  Export PDF
                 </Button>
               </div>
             </nav>
