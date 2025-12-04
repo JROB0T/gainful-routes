@@ -16,7 +16,6 @@ serve(async (req) => {
     console.log("Generating recommendations for:", { 
       firstName: wizardData?.firstName,
       skillsCount: wizardData?.skills?.length,
-      state: wizardData?.state 
     });
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -24,52 +23,240 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Build context from wizard data
     const userContext = `
 USER PROFILE:
 - Name: ${wizardData.firstName || "User"}
 - Location: ${wizardData.city || ""}, ${wizardData.state || ""}
 - Current Situation: ${wizardData.situation || "exploring options"}
 
-SKILLS & EXPERIENCE:
+HARD SKILLS:
 ${(wizardData.skills || []).map((s: string) => `- ${s}`).join("\n") || "- Not specified"}
+
+SOFT SKILLS:
+${(wizardData.softSkills || []).map((s: string) => `- ${s}`).join("\n") || "- Not specified"}
 
 INTERESTS:
 ${(wizardData.interests || []).map((i: string) => `- ${i}`).join("\n") || "- Not specified"}
 
 CREDENTIALS:
-${(wizardData.credentials || []).map((c: string) => `- ${c}`).join("\n") || "- None listed"}
+- Degrees: ${(wizardData.degrees || []).join(", ") || "None"}
+- Certifications: ${(wizardData.certifications || []).join(", ") || "None"}
+- Licenses: ${(wizardData.licenses || []).join(", ") || "None"}
 
-WORK PREFERENCES:
-- Preferred work types: ${(wizardData.workTypes || []).join(", ") || "flexible"}
-- Structure preference: ${wizardData.structurePreference || 3}/5 (1=very flexible, 5=highly structured)
-- Risk tolerance: ${wizardData.riskTolerance || 3}/5 (1=risk averse, 5=risk seeking)
-- Work-life vs income priority: ${wizardData.balanceVsIncome || 3}/5 (1=balance, 5=income)
+WORK SUMMARY:
+${wizardData.workSummary || "Not provided"}
+
+PERSONALITY & PREFERENCES:
+- Work style: ${(wizardData.workTypes || []).join(", ") || "flexible"}
+- Leadership level: ${wizardData.leadershipLevel || "individual-contributor"}
+- Structure preference: ${wizardData.structurePreference || 3}/5
+- Risk tolerance: ${wizardData.riskTolerance || 3}/5
+- Autonomy preference: ${wizardData.autonomyPreference || 3}/5
+- Work-life vs income priority: ${wizardData.balanceVsIncome || 3}/5
 
 CONSTRAINTS:
 - Time available: ${wizardData.timeAvailable || "not specified"}
 - Work setting: ${wizardData.workSetting || "flexible"}
 - Industries to avoid: ${(wizardData.avoidIndustries || []).join(", ") || "none"}
+- Timeline goal: ${wizardData.timeline || "flexible"}
+- Experience level: ${wizardData.experienceLevel || "mid"}
 
 ASSETS:
-- Owns home: ${wizardData.ownsHome ? "Yes" : "No"}
-- Has extra space: ${wizardData.hasExtraSpace ? "Yes" : "No"}
 - Capital available: ${wizardData.capitalAvailable || "not specified"}
 - Physical assets: ${(wizardData.physicalAssets || []).join(", ") || "none listed"}
 - Digital assets: ${(wizardData.digitalAssets || []).join(", ") || "none listed"}
 - Network strength: ${wizardData.networkStrength || "moderate"}
+- Industry connections: ${(wizardData.industryConnections || []).join(", ") || "none specified"}
 
 GOALS:
 - Income paths interested in: ${(wizardData.incomePaths || []).join(", ") || "open to options"}
 - Preferred income type: ${wizardData.incomeType || "flexible"}
-- Timeline: ${wizardData.timeline || "flexible"}
 `.trim();
 
-    const systemPrompt = `You are a career advisor AI for NextMove, a U.S.-focused platform helping people discover personalized career paths and income opportunities.
+    const systemPrompt = `You are an expert career advisor AI for NextMove, a U.S.-focused platform. Generate comprehensive, personalized career recommendations.
 
-Analyze the user profile and generate actionable, personalized recommendations. Be specific and practical. Focus on opportunities that match their skills, constraints, and goals.
+OUTPUT REQUIREMENTS:
+1. PERSONALIZED RECOMMENDATIONS (10-15): Traditional career paths, freelance, consulting, side hustles, businesses matched to user profile
+2. AI-CENTRIC OPPORTUNITIES (3-6): Roles leveraging AI tools - prompt engineering, AI consulting, annotation work, AI-augmented roles
+3. AI-PROOF OPPORTUNITIES (3-6): Automation-resistant roles based on user strengths - trades, relationship-heavy work, judgment-based roles
+4. COMPLETE SUCCESS PLAN with all 7 sections
 
-Generate exactly 10-15 opportunities and a complete Success Plan.`;
+For EACH recommendation include:
+- title: Clear, specific title
+- type: career, consulting, freelance, rental, side-hustle, business, creator
+- reason_fit: 3-5 bullet points referencing specific user inputs
+- difficulty: L (low), M (medium), H (high)
+- time_commitment: e.g., "5-10 hrs/week" or "full-time"
+- ramp_time: Time to first income
+- income_potential: L ($0-2k/mo), M ($2-5k/mo), H ($5k+/mo)
+- first_3_steps: Three specific, actionable steps
+
+For AI-CENTRIC opportunities also include:
+- skill_bridge: What skills they need to develop
+- entry_points: Realistic ways to start
+- competitive_edge: How to stand out
+
+For AI-PROOF opportunities also include:
+- human_advantage: Why this can't be automated
+- monetization_path: How to turn this into income
+
+Be SPECIFIC. Reference the user's actual skills, experience, and constraints. No generic advice.`;
+
+    const tools = [
+      {
+        type: "function",
+        function: {
+          name: "generate_career_recommendations",
+          description: "Generate comprehensive personalized career opportunities and success plan",
+          parameters: {
+            type: "object",
+            properties: {
+              recommendations: {
+                type: "array",
+                description: "10-15 personalized career/income opportunities",
+                items: {
+                  type: "object",
+                  properties: {
+                    title: { type: "string" },
+                    type: { type: "string", enum: ["career", "consulting", "freelance", "rental", "side-hustle", "business", "creator"] },
+                    reason_fit: { type: "array", items: { type: "string" }, description: "3-5 bullet points" },
+                    difficulty: { type: "string", enum: ["L", "M", "H"] },
+                    time_commitment: { type: "string" },
+                    ramp_time: { type: "string" },
+                    income_potential: { type: "string", enum: ["L", "M", "H"] },
+                    first_3_steps: { type: "array", items: { type: "string" } }
+                  },
+                  required: ["title", "type", "reason_fit", "difficulty", "time_commitment", "ramp_time", "income_potential", "first_3_steps"]
+                }
+              },
+              ai_centric_opportunities: {
+                type: "array",
+                description: "3-6 AI-focused roles and opportunities",
+                items: {
+                  type: "object",
+                  properties: {
+                    title: { type: "string" },
+                    type: { type: "string" },
+                    reason_fit: { type: "array", items: { type: "string" } },
+                    skill_bridge: { type: "string", description: "Skills to develop" },
+                    entry_points: { type: "array", items: { type: "string" } },
+                    competitive_edge: { type: "string" },
+                    difficulty: { type: "string", enum: ["L", "M", "H"] },
+                    time_commitment: { type: "string" },
+                    ramp_time: { type: "string" },
+                    income_potential: { type: "string", enum: ["L", "M", "H"] },
+                    first_3_steps: { type: "array", items: { type: "string" } }
+                  },
+                  required: ["title", "type", "reason_fit", "skill_bridge", "entry_points", "competitive_edge", "difficulty", "time_commitment", "ramp_time", "income_potential", "first_3_steps"]
+                }
+              },
+              ai_proof_opportunities: {
+                type: "array",
+                description: "3-6 automation-resistant opportunities",
+                items: {
+                  type: "object",
+                  properties: {
+                    title: { type: "string" },
+                    type: { type: "string" },
+                    reason_fit: { type: "array", items: { type: "string" } },
+                    human_advantage: { type: "string", description: "Why this can't be automated" },
+                    monetization_path: { type: "string" },
+                    difficulty: { type: "string", enum: ["L", "M", "H"] },
+                    time_commitment: { type: "string" },
+                    ramp_time: { type: "string" },
+                    income_potential: { type: "string", enum: ["L", "M", "H"] },
+                    first_3_steps: { type: "array", items: { type: "string" } }
+                  },
+                  required: ["title", "type", "reason_fit", "human_advantage", "monetization_path", "difficulty", "time_commitment", "ramp_time", "income_potential", "first_3_steps"]
+                }
+              },
+              success_plan: {
+                type: "object",
+                properties: {
+                  strengths: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "5-7 key strengths identified"
+                  },
+                  skill_gaps: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "3-5 skills to develop"
+                  },
+                  fast_wins: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "5-7 actions for this week"
+                  },
+                  thirty_day_plan: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        week: { type: "number" },
+                        focus: { type: "string" },
+                        tasks: { type: "array", items: { type: "string" } }
+                      },
+                      required: ["week", "focus", "tasks"]
+                    },
+                    description: "4-week plan with weekly focus and tasks"
+                  },
+                  quickest_path_to_income: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        opportunity: { type: "string" },
+                        timeline: { type: "string" },
+                        steps: { type: "array", items: { type: "string" } }
+                      },
+                      required: ["opportunity", "timeline", "steps"]
+                    },
+                    description: "1-2 fastest income paths"
+                  },
+                  best_long_term_bets: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        opportunity: { type: "string" },
+                        why: { type: "string" },
+                        potential: { type: "string" }
+                      },
+                      required: ["opportunity", "why", "potential"]
+                    },
+                    description: "1-2 highest upside opportunities"
+                  },
+                  encouragement_summary: {
+                    type: "string",
+                    description: "2-3 sentence personalized encouragement"
+                  }
+                },
+                required: ["strengths", "skill_gaps", "fast_wins", "thirty_day_plan", "quickest_path_to_income", "best_long_term_bets", "encouragement_summary"]
+              },
+              low_hanging_fruit: {
+                type: "array",
+                items: { type: "string" },
+                description: "2-3 easiest opportunities to start immediately"
+              },
+              profile_summary: {
+                type: "object",
+                properties: {
+                  headline: { type: "string", description: "One-line profile summary" },
+                  top_skills: { type: "array", items: { type: "string" } },
+                  experience_level: { type: "string" },
+                  best_fit_types: { type: "array", items: { type: "string" } }
+                },
+                required: ["headline", "top_skills", "experience_level", "best_fit_types"]
+              }
+            },
+            required: ["recommendations", "ai_centric_opportunities", "ai_proof_opportunities", "success_plan", "low_hanging_fruit", "profile_summary"]
+          }
+        }
+      }
+    ];
+
+    console.log("Calling AI for recommendations...");
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -83,87 +270,7 @@ Generate exactly 10-15 opportunities and a complete Success Plan.`;
           { role: "system", content: systemPrompt },
           { role: "user", content: userContext }
         ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "generate_career_recommendations",
-              description: "Generate personalized career opportunities and a 30-day success plan",
-              parameters: {
-                type: "object",
-                properties: {
-                  opportunities: {
-                    type: "array",
-                    description: "List of 10-15 personalized opportunities",
-                    items: {
-                      type: "object",
-                      properties: {
-                        title: { type: "string", description: "Clear, specific opportunity title" },
-                        type: { type: "string", enum: ["career", "side-hustle", "freelance", "business", "passive-income", "hybrid"] },
-                        whyItFits: { type: "string", description: "2-3 sentences explaining why this matches their profile" },
-                        difficulty: { type: "string", enum: ["easy", "moderate", "challenging"] },
-                        timeRequirement: { type: "string", description: "e.g., '5-10 hrs/week', 'full-time'" },
-                        rampTime: { type: "string", description: "Time to first income, e.g., '2-4 weeks', '3-6 months'" },
-                        incomePotential: { type: "string", description: "e.g., '$500-2000/month', '$60-80k/year'" },
-                        firstSteps: {
-                          type: "array",
-                          items: { type: "string" },
-                          description: "First 3 concrete action steps"
-                        }
-                      },
-                      required: ["title", "type", "whyItFits", "difficulty", "timeRequirement", "rampTime", "incomePotential", "firstSteps"]
-                    }
-                  },
-                  successPlan: {
-                    type: "object",
-                    description: "30-day action plan",
-                    properties: {
-                      skillGaps: {
-                        type: "array",
-                        items: { type: "string" },
-                        description: "Skills to learn or improve"
-                      },
-                      fastWins: {
-                        type: "array",
-                        items: { type: "string" },
-                        description: "5-7 quick wins to accomplish this week"
-                      },
-                      weekByWeek: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          properties: {
-                            week: { type: "number" },
-                            focus: { type: "string" },
-                            tasks: { type: "array", items: { type: "string" } }
-                          },
-                          required: ["week", "focus", "tasks"]
-                        },
-                        description: "4-week plan with weekly focus and tasks"
-                      },
-                      quickestPathToIncome: {
-                        type: "array",
-                        items: { type: "string" },
-                        description: "1-2 fastest ways to generate income"
-                      },
-                      bestLongTermUpside: {
-                        type: "array",
-                        items: { type: "string" },
-                        description: "1-2 opportunities with highest long-term potential"
-                      },
-                      strengthsSummary: {
-                        type: "string",
-                        description: "Encouraging summary of user's key strengths (2-3 sentences)"
-                      }
-                    },
-                    required: ["skillGaps", "fastWins", "weekByWeek", "quickestPathToIncome", "bestLongTermUpside", "strengthsSummary"]
-                  }
-                },
-                required: ["opportunities", "successPlan"]
-              }
-            }
-          }
-        ],
+        tools,
         tool_choice: { type: "function", function: { name: "generate_career_recommendations" } }
       }),
     });
@@ -188,16 +295,19 @@ Generate exactly 10-15 opportunities and a complete Success Plan.`;
     }
 
     const aiResult = await response.json();
-    console.log("AI Response received:", JSON.stringify(aiResult).substring(0, 500));
+    console.log("AI Response received");
 
-    // Extract tool call result
     const toolCall = aiResult.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall?.function?.arguments) {
       throw new Error("No recommendations generated");
     }
 
     const recommendations = JSON.parse(toolCall.function.arguments);
-    console.log("Generated opportunities:", recommendations.opportunities?.length);
+    console.log("Generated:", {
+      recommendations: recommendations.recommendations?.length,
+      aiCentric: recommendations.ai_centric_opportunities?.length,
+      aiProof: recommendations.ai_proof_opportunities?.length
+    });
 
     return new Response(JSON.stringify({ 
       success: true, 
