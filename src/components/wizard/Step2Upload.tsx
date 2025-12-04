@@ -6,10 +6,6 @@ import { ArrowLeft, Sparkles, Linkedin, Globe, Twitter, Loader2, Upload, FileTex
 import { WizardData } from "@/pages/GetStarted";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import * as pdfjsLib from "pdfjs-dist";
-
-// Set worker source
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js`;
 
 interface Step2Props {
   data: WizardData;
@@ -26,27 +22,6 @@ export function Step2Upload({ data, updateData, onBack, onAutoFill, isAnalyzing 
 
   const hasContent = data.resumeText || data.linkedinUrl;
 
-  const extractTextFromPdf = async (file: File): Promise<string> => {
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    let fullText = "";
-
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const textContent = await page.getTextContent();
-      const pageText = textContent.items
-        .map((item: any) => item.str)
-        .join(" ");
-      fullText += pageText + "\n\n";
-    }
-
-    return fullText.trim();
-  };
-
-  const extractTextFromTxt = async (file: File): Promise<string> => {
-    return await file.text();
-  };
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -57,41 +32,31 @@ export function Step2Upload({ data, updateData, onBack, onAutoFill, isAnalyzing 
       return;
     }
 
-    const allowedTypes = [
-      "application/pdf",
-      "text/plain",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    ];
-
-    if (!allowedTypes.includes(file.type) && !file.name.endsWith(".txt")) {
-      toast.error("Please upload a PDF, TXT, or Word document.");
-      return;
-    }
-
     setIsProcessing(true);
     setUploadedFile(file);
 
     try {
-      let text = "";
-
-      if (file.type === "application/pdf") {
-        text = await extractTextFromPdf(file);
-      } else if (file.type === "text/plain" || file.name.endsWith(".txt")) {
-        text = await extractTextFromTxt(file);
-      } else if (file.type.includes("word") || file.name.endsWith(".doc") || file.name.endsWith(".docx")) {
-        // For Word docs, we can't parse client-side easily, so inform the user
-        toast.info("Word document detected. For best results, please also paste the text content.");
-        text = `[Word document uploaded: ${file.name}]\n\nPlease paste the key content from your resume below for AI analysis.`;
-      }
-
-      if (text) {
+      // For text files, read directly
+      if (file.type === "text/plain" || file.name.endsWith(".txt")) {
+        const text = await file.text();
         updateData({ resumeText: text });
-        toast.success("Resume text extracted successfully!");
+        toast.success("Resume text loaded successfully!");
+      } else if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
+        // For PDFs, prompt user to paste content
+        toast.info("PDF detected. Please paste the text content from your resume in the text area below.");
+        updateData({ 
+          resumeText: `[PDF uploaded: ${file.name}]\n\nPlease paste the key content from your PDF resume below for AI analysis, or copy-paste from your PDF viewer.` 
+        });
+      } else {
+        // For Word docs and others
+        toast.info("Document detected. Please paste the text content below for best results.");
+        updateData({ 
+          resumeText: `[Document uploaded: ${file.name}]\n\nPlease paste the key content from your resume below for AI analysis.` 
+        });
       }
     } catch (error) {
       console.error("Error processing file:", error);
-      toast.error("Failed to extract text from file. Please try pasting the content instead.");
+      toast.error("Failed to read file. Please try pasting the content instead.");
     } finally {
       setIsProcessing(false);
     }
@@ -231,7 +196,7 @@ export function Step2Upload({ data, updateData, onBack, onAutoFill, isAnalyzing 
           <Label htmlFor="resume">Resume Content</Label>
           <Textarea
             id="resume"
-            placeholder="Your resume text will appear here after upload, or you can paste it directly..."
+            placeholder="Paste your resume text here, or describe your work experience, skills, and accomplishments..."
             value={data.resumeText}
             onChange={(e) => updateData({ resumeText: e.target.value })}
             className="min-h-[150px] resize-y"
