@@ -79,11 +79,17 @@ OUTPUT REQUIREMENTS:
 1. PERSONALIZED RECOMMENDATIONS (10-15): Traditional career paths, freelance, consulting, side hustles, businesses matched to user profile
 2. AI-CENTRIC OPPORTUNITIES (3-6): Roles leveraging AI tools - prompt engineering, AI consulting, annotation work, AI-augmented roles
 3. AI-PROOF OPPORTUNITIES (3-6): Automation-resistant roles based on user strengths - trades, relationship-heavy work, judgment-based roles
-4. COMPLETE SUCCESS PLAN with all 7 sections
+4. ALTERNATIVE PATHS (3-6): Ways to leverage their specific resources, assets, interests, and hobbies for income - EVEN IF they don't want to change careers. Focus on:
+   - Monetizing existing assets (property, equipment, vehicles, digital presence)
+   - Side income from hobbies and interests
+   - Passive income opportunities matching their situation
+   - Consulting/teaching others based on their expertise
+   - Resource-based opportunities (rental, licensing, etc.)
+5. COMPLETE SUCCESS PLAN with all 7 sections
 
 For EACH recommendation include:
 - title: Clear, specific title
-- type: career, consulting, freelance, rental, side-hustle, business, creator
+- type: career, consulting, freelance, rental, side-hustle, business, creator, passive-income
 - reason_fit: 3-5 bullet points referencing specific user inputs
 - difficulty: L (low), M (medium), H (high)
 - time_commitment: e.g., "5-10 hrs/week" or "full-time"
@@ -99,6 +105,11 @@ For AI-CENTRIC opportunities also include:
 For AI-PROOF opportunities also include:
 - human_advantage: Why this can't be automated
 - monetization_path: How to turn this into income
+
+For ALTERNATIVE PATHS also include:
+- resource_leveraged: What specific asset, interest, or resource this leverages
+- effort_level: Minimal, Part-time, or Active
+- passive_potential: Whether this can become passive income over time
 
 Be SPECIFIC. Reference the user's actual skills, experience, and constraints. No generic advice.`;
 
@@ -168,6 +179,27 @@ Be SPECIFIC. Reference the user's actual skills, experience, and constraints. No
                     first_3_steps: { type: "array", items: { type: "string" } }
                   },
                   required: ["title", "type", "reason_fit", "human_advantage", "monetization_path", "difficulty", "time_commitment", "ramp_time", "income_potential", "first_3_steps"]
+                }
+              },
+              alternative_paths: {
+                type: "array",
+                description: "3-6 alternative income paths leveraging user's resources, assets, and interests",
+                items: {
+                  type: "object",
+                  properties: {
+                    title: { type: "string" },
+                    type: { type: "string", enum: ["rental", "passive-income", "side-hustle", "consulting", "creator", "freelance"] },
+                    reason_fit: { type: "array", items: { type: "string" } },
+                    resource_leveraged: { type: "string", description: "What specific asset, interest, or resource this leverages" },
+                    effort_level: { type: "string", enum: ["Minimal", "Part-time", "Active"] },
+                    passive_potential: { type: "string", description: "Whether and how this can become passive income" },
+                    difficulty: { type: "string", enum: ["L", "M", "H"] },
+                    time_commitment: { type: "string" },
+                    ramp_time: { type: "string" },
+                    income_potential: { type: "string", enum: ["L", "M", "H"] },
+                    first_3_steps: { type: "array", items: { type: "string" } }
+                  },
+                  required: ["title", "type", "reason_fit", "resource_leveraged", "effort_level", "passive_potential", "difficulty", "time_commitment", "ramp_time", "income_potential", "first_3_steps"]
                 }
               },
               success_plan: {
@@ -250,7 +282,7 @@ Be SPECIFIC. Reference the user's actual skills, experience, and constraints. No
                 required: ["headline", "top_skills", "experience_level", "best_fit_types"]
               }
             },
-            required: ["recommendations", "ai_centric_opportunities", "ai_proof_opportunities", "success_plan", "low_hanging_fruit", "profile_summary"]
+            required: ["recommendations", "ai_centric_opportunities", "ai_proof_opportunities", "alternative_paths", "success_plan", "low_hanging_fruit", "profile_summary"]
           }
         }
       }
@@ -334,7 +366,8 @@ Be SPECIFIC. Reference the user's actual skills, experience, and constraints. No
     console.log("Generated:", {
       recommendations: recommendations.recommendations?.length,
       aiCentric: recommendations.ai_centric_opportunities?.length,
-      aiProof: recommendations.ai_proof_opportunities?.length
+      aiProof: recommendations.ai_proof_opportunities?.length,
+      alternativePaths: recommendations.alternative_paths?.length
     });
 
     return new Response(JSON.stringify({ 
