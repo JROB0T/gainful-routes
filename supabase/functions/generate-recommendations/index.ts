@@ -295,14 +295,42 @@ Be SPECIFIC. Reference the user's actual skills, experience, and constraints. No
     }
 
     const aiResult = await response.json();
-    console.log("AI Response received");
+    console.log("AI Response received, structure:", JSON.stringify({
+      hasChoices: !!aiResult.choices,
+      choicesLength: aiResult.choices?.length,
+      messageKeys: aiResult.choices?.[0]?.message ? Object.keys(aiResult.choices[0].message) : [],
+      hasToolCalls: !!aiResult.choices?.[0]?.message?.tool_calls,
+      hasFunctionCall: !!aiResult.choices?.[0]?.message?.function_call,
+      content: aiResult.choices?.[0]?.message?.content?.substring(0, 200)
+    }));
 
+    let recommendations;
+    
+    // Try tool_calls first (OpenAI format)
     const toolCall = aiResult.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall?.function?.arguments) {
-      throw new Error("No recommendations generated");
+    if (toolCall?.function?.arguments) {
+      console.log("Parsing from tool_calls");
+      recommendations = JSON.parse(toolCall.function.arguments);
     }
-
-    const recommendations = JSON.parse(toolCall.function.arguments);
+    // Try function_call (alternative format)
+    else if (aiResult.choices?.[0]?.message?.function_call?.arguments) {
+      console.log("Parsing from function_call");
+      recommendations = JSON.parse(aiResult.choices[0].message.function_call.arguments);
+    }
+    // Try content as JSON (fallback)
+    else if (aiResult.choices?.[0]?.message?.content) {
+      console.log("Attempting to parse from content");
+      const content = aiResult.choices[0].message.content;
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        recommendations = JSON.parse(jsonMatch[0]);
+      }
+    }
+    
+    if (!recommendations) {
+      console.error("Full AI response:", JSON.stringify(aiResult).substring(0, 1000));
+      throw new Error("No recommendations generated - could not parse AI response");
+    }
     console.log("Generated:", {
       recommendations: recommendations.recommendations?.length,
       aiCentric: recommendations.ai_centric_opportunities?.length,
