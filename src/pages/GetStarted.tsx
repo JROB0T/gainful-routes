@@ -194,10 +194,6 @@ export default function GetStarted() {
     }
   };
 
-  const handleBypassPayment = () => {
-    setHasPaid(true);
-    toast.success("Payment bypassed for testing - Full access granted!");
-  };
 
   const handleGenerateOpportunities = async () => {
     setIsGenerating(true);
@@ -279,17 +275,6 @@ export default function GetStarted() {
           )}
         </div>
 
-        {/* Test bypass banner */}
-        {!hasPaid && (
-          <div className="mb-6 p-3 rounded-lg bg-warning/10 border border-warning/30 flex items-center justify-between">
-            <span className="text-sm text-warning-foreground">
-              Testing mode: Bypass payment to test full flow
-            </span>
-            <Button variant="outline" size="sm" onClick={handleBypassPayment}>
-              Bypass Payment
-            </Button>
-          </div>
-        )}
 
         {/* Progress */}
         <WizardProgress currentStep={displayStep} totalSteps={totalSteps} />
@@ -319,7 +304,6 @@ export default function GetStarted() {
               analysis={aiAnalysis}
               onBack={handleBack}
               isLoggedIn={isLoggedIn}
-              onBypassPayment={handleBypassPayment}
             />
           )}
 
