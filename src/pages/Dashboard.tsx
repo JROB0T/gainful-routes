@@ -230,17 +230,14 @@ export default function Dashboard() {
         doc.setFontSize(8);
         doc.text(opp.type.toUpperCase(), margin + 6, y);
         
-        // Metrics row
+        // Metrics row - use proper spacing
         const diffLabel = { L: "Low", M: "Medium", H: "High" }[opp.difficulty] || opp.difficulty;
         const incomeLabel = { L: "$0-2k/mo", M: "$2-5k/mo", H: "$5k+/mo" }[opp.income_potential] || opp.income_potential;
         
         doc.setTextColor(...colors.muted);
-        doc.setFontSize(8);
-        const metricsY = y;
-        doc.text(`Difficulty: ${diffLabel}`, margin + 35, metricsY);
-        doc.text(`Time: ${opp.time_commitment}`, margin + 70, metricsY);
-        doc.text(`Ramp: ${opp.ramp_time}`, margin + 110, metricsY);
-        doc.text(`Income: ${incomeLabel}`, margin + 145, metricsY);
+        doc.setFontSize(7);
+        const metricsText = `Difficulty: ${diffLabel}  |  Time: ${opp.time_commitment}  |  Ramp: ${opp.ramp_time}  |  Income: ${incomeLabel}`;
+        doc.text(metricsText, margin + 35, y);
         y += 8;
         
         // Why it fits
@@ -253,10 +250,13 @@ export default function Dashboard() {
           doc.setFont("helvetica", "normal");
           doc.setTextColor(...colors.muted);
           opp.reason_fit.forEach((reason: string) => {
-            checkPageBreak(8);
+            checkPageBreak(10);
             doc.setFontSize(8);
-            doc.text(`-  ${reason}`, margin + 5, y);
-            y += 4;
+            const reasonLines = doc.splitTextToSize(`-  ${reason}`, contentWidth - 10);
+            reasonLines.forEach((line: string) => {
+              doc.text(line, margin + 5, y);
+              y += 4;
+            });
           });
         }
         
@@ -266,32 +266,46 @@ export default function Dashboard() {
           doc.setFontSize(8);
           doc.setFont("helvetica", "bold");
           doc.setTextColor(...colors.blue);
-          doc.text("Skill Bridge: ", margin + 3, y);
+          doc.text("Skill Bridge:", margin + 3, y);
           doc.setFont("helvetica", "normal");
           doc.setTextColor(...colors.muted);
-          const bridgeWidth = doc.getTextWidth("Skill Bridge: ");
-          addWrappedText(opp.skill_bridge, margin + 3 + bridgeWidth, contentWidth - bridgeWidth - 6, 8, colors.muted);
+          y += 4;
+          const bridgeLines = doc.splitTextToSize(opp.skill_bridge, contentWidth - 10);
+          bridgeLines.forEach((line: string) => {
+            doc.text(line, margin + 5, y);
+            y += 4;
+          });
           
           if (opp.competitive_edge) {
+            y += 2;
             doc.setFont("helvetica", "bold");
             doc.setTextColor(...colors.blue);
-            doc.text("Competitive Edge: ", margin + 3, y);
+            doc.text("Competitive Edge:", margin + 3, y);
             doc.setFont("helvetica", "normal");
             doc.setTextColor(...colors.muted);
-            const edgeWidth = doc.getTextWidth("Competitive Edge: ");
-            addWrappedText(opp.competitive_edge, margin + 3 + edgeWidth, contentWidth - edgeWidth - 6, 8, colors.muted);
+            y += 4;
+            const edgeLines = doc.splitTextToSize(opp.competitive_edge, contentWidth - 10);
+            edgeLines.forEach((line: string) => {
+              doc.text(line, margin + 5, y);
+              y += 4;
+            });
           }
           
           if (opp.entry_points?.length) {
+            y += 2;
             doc.setFont("helvetica", "bold");
             doc.setTextColor(...colors.blue);
-            doc.text("Entry Points: ", margin + 3, y);
+            doc.text("Entry Points:", margin + 3, y);
             doc.setFont("helvetica", "normal");
             doc.setTextColor(...colors.muted);
             y += 4;
             opp.entry_points.forEach((ep: string) => {
-              doc.text(`-  ${ep}`, margin + 5, y);
-              y += 4;
+              checkPageBreak(8);
+              const epLines = doc.splitTextToSize(`-  ${ep}`, contentWidth - 10);
+              epLines.forEach((line: string) => {
+                doc.text(line, margin + 5, y);
+                y += 4;
+              });
             });
           }
         }
@@ -301,19 +315,29 @@ export default function Dashboard() {
           doc.setFontSize(8);
           doc.setFont("helvetica", "bold");
           doc.setTextColor(...colors.accent);
-          doc.text("Human Advantage: ", margin + 3, y);
+          doc.text("Human Advantage:", margin + 3, y);
           doc.setFont("helvetica", "normal");
           doc.setTextColor(...colors.muted);
           y += 4;
-          addWrappedText(opp.human_advantage, margin + 5, contentWidth - 8, 8, colors.muted);
+          const advantageLines = doc.splitTextToSize(opp.human_advantage, contentWidth - 10);
+          advantageLines.forEach((line: string) => {
+            doc.text(line, margin + 5, y);
+            y += 4;
+          });
           
           if (opp.monetization_path) {
+            y += 2;
             doc.setFont("helvetica", "bold");
             doc.setTextColor(...colors.accent);
-            doc.text("Path to Income: ", margin + 3, y);
+            doc.text("Path to Income:", margin + 3, y);
             doc.setFont("helvetica", "normal");
+            doc.setTextColor(...colors.muted);
             y += 4;
-            addWrappedText(opp.monetization_path, margin + 5, contentWidth - 8, 8, colors.muted);
+            const pathLines = doc.splitTextToSize(opp.monetization_path, contentWidth - 10);
+            pathLines.forEach((line: string) => {
+              doc.text(line, margin + 5, y);
+              y += 4;
+            });
           }
         }
         
@@ -322,22 +346,31 @@ export default function Dashboard() {
           doc.setFontSize(8);
           doc.setFont("helvetica", "bold");
           doc.setTextColor(...colors.warning);
-          doc.text("Resource Leveraged: ", margin + 3, y);
+          doc.text("Resource Leveraged:", margin + 3, y);
           doc.setFont("helvetica", "normal");
           doc.setTextColor(...colors.muted);
           y += 4;
-          addWrappedText(opp.resource_leveraged, margin + 5, contentWidth - 8, 8, colors.muted);
+          const resourceLines = doc.splitTextToSize(opp.resource_leveraged, contentWidth - 10);
+          resourceLines.forEach((line: string) => {
+            doc.text(line, margin + 5, y);
+            y += 4;
+          });
           
           doc.text(`Effort Level: ${opp.effort_level}`, margin + 5, y);
-          y += 4;
+          y += 5;
           
           if (opp.passive_potential) {
             doc.setFont("helvetica", "bold");
             doc.setTextColor(...colors.warning);
-            doc.text("Passive Potential: ", margin + 3, y);
+            doc.text("Passive Potential:", margin + 3, y);
             doc.setFont("helvetica", "normal");
+            doc.setTextColor(...colors.muted);
             y += 4;
-            addWrappedText(opp.passive_potential, margin + 5, contentWidth - 8, 8, colors.muted);
+            const passiveLines = doc.splitTextToSize(opp.passive_potential, contentWidth - 10);
+            passiveLines.forEach((line: string) => {
+              doc.text(line, margin + 5, y);
+              y += 4;
+            });
           }
         }
         
@@ -533,18 +566,18 @@ export default function Dashboard() {
       if (results.success_plan?.strengths?.length) {
         addSubHeader("Your Key Strengths");
         doc.setFillColor(254, 249, 195); // Yellow 100
-        doc.roundedRect(margin, y - 4, contentWidth, 6 + Math.ceil(results.success_plan.strengths.length / 3) * 8, 2, 2, 'F');
+        const strengthsHeight = results.success_plan.strengths.length * 6 + 8;
+        doc.roundedRect(margin, y - 4, contentWidth, strengthsHeight, 2, 2, 'F');
         doc.setFontSize(9);
         doc.setTextColor(...colors.text);
         
-        const strengthsPerRow = 3;
-        const strengthWidth = (contentWidth - 10) / strengthsPerRow;
         results.success_plan.strengths.forEach((strength, i) => {
-          const row = Math.floor(i / strengthsPerRow);
-          const col = i % strengthsPerRow;
-          doc.text(`> ${strength}`, margin + 5 + col * strengthWidth, y + row * 7);
+          checkPageBreak(8);
+          const truncatedStrength = strength.length > 60 ? strength.substring(0, 57) + "..." : strength;
+          doc.text(`> ${truncatedStrength}`, margin + 5, y);
+          y += 6;
         });
-        y += Math.ceil(results.success_plan.strengths.length / strengthsPerRow) * 7 + 8;
+        y += 6;
       }
       
       // Skill Gaps
@@ -552,11 +585,13 @@ export default function Dashboard() {
         addSubHeader("Skills to Develop");
         results.success_plan.skill_gaps.forEach((skill) => {
           checkPageBreak(8);
+          const skillWidth = Math.min(doc.getTextWidth(skill) + 10, contentWidth - 10);
           doc.setFillColor(...colors.secondary);
-          doc.roundedRect(margin, y - 4, doc.getTextWidth(skill) + 10, 7, 2, 2, 'F');
+          doc.roundedRect(margin, y - 4, skillWidth, 7, 2, 2, 'F');
           doc.setFontSize(9);
           doc.setTextColor(...colors.text);
-          doc.text(skill, margin + 5, y);
+          const truncatedSkill = skill.length > 50 ? skill.substring(0, 47) + "..." : skill;
+          doc.text(truncatedSkill, margin + 5, y);
           y += 10;
         });
         y += 5;
