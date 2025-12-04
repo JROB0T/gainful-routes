@@ -5,13 +5,121 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Input validation constants
+const MAX_RESUME_LENGTH = 50000;
+const MAX_URL_LENGTH = 500;
+const MAX_STRING_LENGTH = 200;
+
+// URL validation helper
+function isValidUrl(url: string): boolean {
+  if (!url) return true; // Optional fields are valid when empty
+  try {
+    const parsed = new URL(url);
+    return ['http:', 'https:'].includes(parsed.protocol);
+  } catch {
+    return false;
+  }
+}
+
+// Validate and sanitize input
+function validateInput(data: unknown): { valid: boolean; error?: string; sanitized?: Record<string, unknown> } {
+  if (!data || typeof data !== 'object') {
+    return { valid: false, error: "Invalid request body" };
+  }
+  
+  const input = data as Record<string, unknown>;
+  
+  // Validate resumeText
+  if (input.resumeText !== undefined && input.resumeText !== null) {
+    if (typeof input.resumeText !== 'string') {
+      return { valid: false, error: "resumeText must be a string" };
+    }
+    if (input.resumeText.length > MAX_RESUME_LENGTH) {
+      return { valid: false, error: `resumeText exceeds maximum length of ${MAX_RESUME_LENGTH} characters` };
+    }
+  }
+  
+  // Validate URLs
+  const urlFields = ['linkedinUrl', 'twitterUrl', 'portfolioUrl'];
+  for (const field of urlFields) {
+    const value = input[field];
+    if (value !== undefined && value !== null && value !== '') {
+      if (typeof value !== 'string') {
+        return { valid: false, error: `${field} must be a string` };
+      }
+      if (value.length > MAX_URL_LENGTH) {
+        return { valid: false, error: `${field} exceeds maximum length of ${MAX_URL_LENGTH} characters` };
+      }
+      if (!isValidUrl(value)) {
+        return { valid: false, error: `${field} must be a valid URL` };
+      }
+    }
+  }
+  
+  // Validate basicInfo
+  if (input.basicInfo !== undefined && input.basicInfo !== null) {
+    if (typeof input.basicInfo !== 'object') {
+      return { valid: false, error: "basicInfo must be an object" };
+    }
+    const basicInfo = input.basicInfo as Record<string, unknown>;
+    const stringFields = ['firstName', 'city', 'state', 'situation'];
+    for (const field of stringFields) {
+      const value = basicInfo[field];
+      if (value !== undefined && value !== null) {
+        if (typeof value !== 'string') {
+          return { valid: false, error: `basicInfo.${field} must be a string` };
+        }
+        if (value.length > MAX_STRING_LENGTH) {
+          return { valid: false, error: `basicInfo.${field} exceeds maximum length of ${MAX_STRING_LENGTH} characters` };
+        }
+      }
+    }
+  }
+  
+  return { 
+    valid: true, 
+    sanitized: {
+      resumeText: typeof input.resumeText === 'string' ? input.resumeText.slice(0, MAX_RESUME_LENGTH) : '',
+      linkedinUrl: typeof input.linkedinUrl === 'string' ? input.linkedinUrl.slice(0, MAX_URL_LENGTH) : '',
+      twitterUrl: typeof input.twitterUrl === 'string' ? input.twitterUrl.slice(0, MAX_URL_LENGTH) : '',
+      portfolioUrl: typeof input.portfolioUrl === 'string' ? input.portfolioUrl.slice(0, MAX_URL_LENGTH) : '',
+      basicInfo: input.basicInfo || {}
+    }
+  };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { resumeText, linkedinUrl, twitterUrl, portfolioUrl, basicInfo } = await req.json();
+    let rawInput: unknown;
+    try {
+      rawInput = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON in request body" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const validation = validateInput(rawInput);
+    if (!validation.valid) {
+      console.log("Input validation failed:", validation.error);
+      return new Response(JSON.stringify({ error: validation.error }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { resumeText, linkedinUrl, twitterUrl, portfolioUrl, basicInfo } = validation.sanitized as {
+      resumeText: string;
+      linkedinUrl: string;
+      twitterUrl: string;
+      portfolioUrl: string;
+      basicInfo: Record<string, unknown>;
+    };
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {

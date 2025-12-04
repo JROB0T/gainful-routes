@@ -5,13 +5,144 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Input validation constants
+const MAX_STRING_LENGTH = 500;
+const MAX_ARRAY_LENGTH = 50;
+const MAX_ARRAY_ITEM_LENGTH = 200;
+
+// Validate string field
+function validateString(value: unknown, maxLength: number = MAX_STRING_LENGTH): string {
+  if (value === undefined || value === null) return '';
+  if (typeof value !== 'string') return String(value).slice(0, maxLength);
+  return value.slice(0, maxLength);
+}
+
+// Validate array of strings
+function validateStringArray(value: unknown, maxItems: number = MAX_ARRAY_LENGTH): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .slice(0, maxItems)
+    .filter((item): item is string => typeof item === 'string')
+    .map(item => item.slice(0, MAX_ARRAY_ITEM_LENGTH));
+}
+
+// Validate number in range
+function validateNumber(value: unknown, min: number, max: number, defaultVal: number): number {
+  if (typeof value !== 'number' || isNaN(value)) return defaultVal;
+  return Math.min(Math.max(value, min), max);
+}
+
+// Validate and sanitize wizardData input
+function validateWizardData(data: unknown): { valid: boolean; error?: string; sanitized?: Record<string, unknown> } {
+  if (!data || typeof data !== 'object') {
+    return { valid: false, error: "wizardData is required and must be an object" };
+  }
+  
+  const input = data as Record<string, unknown>;
+  
+  // Sanitize all fields with appropriate limits
+  const sanitized: Record<string, unknown> = {
+    firstName: validateString(input.firstName, 100),
+    city: validateString(input.city, 100),
+    state: validateString(input.state, 50),
+    situation: validateString(input.situation, 200),
+    skills: validateStringArray(input.skills),
+    softSkills: validateStringArray(input.softSkills),
+    interests: validateStringArray(input.interests),
+    degrees: validateStringArray(input.degrees),
+    certifications: validateStringArray(input.certifications),
+    licenses: validateStringArray(input.licenses),
+    workSummary: validateString(input.workSummary, 2000),
+    workTypes: validateStringArray(input.workTypes, 10),
+    leadershipLevel: validateString(input.leadershipLevel, 50),
+    structurePreference: validateNumber(input.structurePreference, 1, 5, 3),
+    riskTolerance: validateNumber(input.riskTolerance, 1, 5, 3),
+    autonomyPreference: validateNumber(input.autonomyPreference, 1, 5, 3),
+    balanceVsIncome: validateNumber(input.balanceVsIncome, 1, 5, 3),
+    timeAvailable: validateString(input.timeAvailable, 100),
+    workSetting: validateString(input.workSetting, 100),
+    avoidIndustries: validateStringArray(input.avoidIndustries, 20),
+    timeline: validateString(input.timeline, 100),
+    experienceLevel: validateString(input.experienceLevel, 50),
+    capitalAvailable: validateString(input.capitalAvailable, 100),
+    physicalAssets: validateStringArray(input.physicalAssets),
+    digitalAssets: validateStringArray(input.digitalAssets),
+    networkStrength: validateString(input.networkStrength, 50),
+    industryConnections: validateStringArray(input.industryConnections),
+    incomePaths: validateStringArray(input.incomePaths, 20),
+    incomeType: validateString(input.incomeType, 50),
+  };
+  
+  return { valid: true, sanitized };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { wizardData, extractedProfile } = await req.json();
+    let rawInput: unknown;
+    try {
+      rawInput = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON in request body" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!rawInput || typeof rawInput !== 'object') {
+      return new Response(JSON.stringify({ error: "Request body must be an object" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const input = rawInput as Record<string, unknown>;
+    
+    const validation = validateWizardData(input.wizardData);
+    if (!validation.valid) {
+      console.log("Input validation failed:", validation.error);
+      return new Response(JSON.stringify({ error: validation.error }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Type assertion for wizardData with known fields
+    const wizardData = validation.sanitized as {
+      firstName: string;
+      city: string;
+      state: string;
+      situation: string;
+      skills: string[];
+      softSkills: string[];
+      interests: string[];
+      degrees: string[];
+      certifications: string[];
+      licenses: string[];
+      workSummary: string;
+      workTypes: string[];
+      leadershipLevel: string;
+      structurePreference: number;
+      riskTolerance: number;
+      autonomyPreference: number;
+      balanceVsIncome: number;
+      timeAvailable: string;
+      workSetting: string;
+      avoidIndustries: string[];
+      timeline: string;
+      experienceLevel: string;
+      capitalAvailable: string;
+      physicalAssets: string[];
+      digitalAssets: string[];
+      networkStrength: string;
+      industryConnections: string[];
+      incomePaths: string[];
+      incomeType: string;
+    };
+    const extractedProfile = input.extractedProfile; // Optional, passed through
     
     console.log("Generating recommendations for:", { 
       firstName: wizardData?.firstName,
