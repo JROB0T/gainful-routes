@@ -8,6 +8,7 @@ interface TeaserPreviewProps {
     alignedTypes: string[];
     opportunityPaths: number;
     assetsFound: boolean;
+    headline?: string;
   } | null;
   onBack: () => void;
   isLoggedIn: boolean;
@@ -40,7 +41,7 @@ export function TeaserPreview({ analysis, onBack, isLoggedIn, onBypassPayment }:
           Profile Analysis Complete!
         </h2>
         <p className="text-muted-foreground">
-          We've discovered some exciting opportunities for you.
+          {analysis.headline || "We've discovered some exciting opportunities for you."}
         </p>
       </div>
 

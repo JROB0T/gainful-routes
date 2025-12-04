@@ -140,23 +140,58 @@ export default function GetStarted() {
     }
 
     setIsAnalyzing(true);
-    // Simulate AI analysis for now (will be replaced with actual AI call)
-    setTimeout(() => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-profile`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          resumeText: data.resumeText,
+          linkedinUrl: data.linkedinUrl,
+          twitterUrl: data.twitterUrl,
+          portfolioUrl: data.portfolioUrl,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Analysis failed");
+      }
+
+      const result = await response.json();
+      const extracted = result.data;
+
+      // Set teaser data for preview
       setAiAnalysis({
-        skillsCount: 12,
-        alignedTypes: ["Creative roles", "Leadership positions"],
-        opportunityPaths: 8,
-        assetsFound: true,
+        skillsCount: extracted.teaserSummary?.skillsCount || extracted.skills?.length || 0,
+        alignedTypes: extracted.teaserSummary?.alignedTypes || [],
+        opportunityPaths: extracted.teaserSummary?.opportunityPaths || 0,
+        assetsFound: extracted.teaserSummary?.assetsFound || false,
+        headline: extracted.teaserSummary?.headline || "Your profile shows promising potential!",
       });
-      // Auto-fill some fields from "AI extraction"
+
+      // Auto-fill form fields from AI extraction
       updateData({
-        skills: ["Project Management", "Communication", "Leadership"],
-        interests: ["Technology", "Consulting"],
-        credentials: ["MBA", "PMP Certification"],
+        skills: extracted.skills || [],
+        interests: extracted.interests || [],
+        credentials: extracted.assets?.credentials || extracted.credentials || [],
+        workTypes: extracted.personalityIndicators?.workTypes || [],
+        structurePreference: extracted.personalityIndicators?.structurePreference || 3,
+        riskTolerance: extracted.personalityIndicators?.riskTolerance || 3,
+        digitalAssets: extracted.assets?.digitalAssets || [],
+        networkStrength: extracted.assets?.networkStrength || "",
       });
-      setIsAnalyzing(false);
+
+      toast.success("Profile analyzed successfully!");
       setStep(3); // Go to teaser for free users, or step 3 if paid
-    }, 2000);
+    } catch (error) {
+      console.error("AI analysis error:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to analyze profile. Please try again.");
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleBypassPayment = () => {
