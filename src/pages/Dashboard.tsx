@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { 
   Compass, LogOut, User, Calendar, RefreshCw, Download, ChevronRight, ChevronDown,
   Sparkles, Lock, Target, Zap, TrendingUp, Clock, DollarSign, CheckCircle2,
-  Brain, Shield, Rocket, Star, ArrowRight, Printer
+  Brain, Shield, Rocket, Star, ArrowRight, Printer, Lightbulb, Package
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -33,6 +33,12 @@ type AIProofOpportunity = BaseOpportunity & {
   monetization_path: string;
 };
 
+type AlternativePath = BaseOpportunity & {
+  resource_leveraged: string;
+  effort_level: string;
+  passive_potential: string;
+};
+
 type SuccessPlan = {
   strengths: string[];
   skill_gaps: string[];
@@ -54,6 +60,7 @@ type Results = {
   recommendations: Recommendation[];
   ai_centric_opportunities: AICentricOpportunity[];
   ai_proof_opportunities: AIProofOpportunity[];
+  alternative_paths: AlternativePath[];
   success_plan: SuccessPlan;
   low_hanging_fruit: string[];
   profile_summary: ProfileSummary;
@@ -130,6 +137,7 @@ export default function Dashboard() {
       "side-hustle": "bg-green-500/10 text-green-600 border-green-500/20",
       "business": "bg-orange-500/10 text-orange-600 border-orange-500/20",
       "creator": "bg-pink-500/10 text-pink-600 border-pink-500/20",
+      "passive-income": "bg-teal-500/10 text-teal-600 border-teal-500/20",
     };
     return colors[type] || "bg-secondary text-secondary-foreground";
   };
@@ -256,6 +264,26 @@ export default function Dashboard() {
               </div>
             )}
 
+            {type === "alternative" && opp.resource_leveraged && (
+              <div>
+                <h4 className="text-sm font-semibold text-foreground mb-2">Resource Leveraged</h4>
+                <p className="text-sm text-muted-foreground">{opp.resource_leveraged}</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {opp.effort_level && (
+                    <span className="text-xs px-2 py-1 rounded-full bg-secondary text-secondary-foreground">
+                      Effort: {opp.effort_level}
+                    </span>
+                  )}
+                </div>
+                {opp.passive_potential && (
+                  <div className="mt-2">
+                    <span className="text-xs text-muted-foreground">Passive Potential: </span>
+                    <span className="text-xs text-foreground">{opp.passive_potential}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div>
               <h4 className="text-sm font-semibold text-foreground mb-2">First 3 Steps</h4>
               <ol className="space-y-1">
@@ -367,6 +395,7 @@ export default function Dashboard() {
               <NavItem id="recommendations" label="Recommendations" icon={Target} count={results.recommendations?.length} />
               <NavItem id="ai-centric" label="AI Opportunities" icon={Brain} count={results.ai_centric_opportunities?.length} />
               <NavItem id="ai-proof" label="AI-Proof Roles" icon={Shield} count={results.ai_proof_opportunities?.length} />
+              <NavItem id="alternative-paths" label="Resource & Asset Paths" icon={Lightbulb} count={results.alternative_paths?.length} />
               <NavItem id="quick-wins" label="Quick Wins" icon={Rocket} />
               <NavItem id="success-plan" label="Success Plan" icon={Star} />
               
@@ -387,6 +416,7 @@ export default function Dashboard() {
               <NavItem id="recommendations" label="Recommendations" icon={Target} />
               <NavItem id="ai-centric" label="AI Opps" icon={Brain} />
               <NavItem id="ai-proof" label="AI-Proof" icon={Shield} />
+              <NavItem id="alternative-paths" label="Resources" icon={Lightbulb} />
               <NavItem id="success-plan" label="Plan" icon={Star} />
             </div>
 
@@ -427,7 +457,7 @@ export default function Dashboard() {
                 )}
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                   <div className="bg-card rounded-xl border border-border p-4 text-center">
                     <div className="text-3xl font-display font-bold text-foreground">{results.recommendations?.length || 0}</div>
                     <div className="text-sm text-muted-foreground">Opportunities</div>
@@ -439,6 +469,10 @@ export default function Dashboard() {
                   <div className="bg-card rounded-xl border border-border p-4 text-center">
                     <div className="text-3xl font-display font-bold text-green-500">{results.ai_proof_opportunities?.length || 0}</div>
                     <div className="text-sm text-muted-foreground">AI-Proof</div>
+                  </div>
+                  <div className="bg-card rounded-xl border border-border p-4 text-center">
+                    <div className="text-3xl font-display font-bold text-amber-500">{results.alternative_paths?.length || 0}</div>
+                    <div className="text-sm text-muted-foreground">Resource Paths</div>
                   </div>
                   <div className="bg-card rounded-xl border border-border p-4 text-center">
                     <div className="text-3xl font-display font-bold text-purple-500">{results.success_plan?.strengths?.length || 0}</div>
@@ -496,6 +530,31 @@ export default function Dashboard() {
                     <OpportunityCard key={i} opp={opp} type="main" />
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Alternative Paths Section */}
+            {activeSection === "alternative-paths" && (
+              <div className="space-y-4">
+                <div className="mb-6">
+                  <h2 className="text-2xl font-display font-bold text-foreground mb-2 flex items-center gap-2">
+                    <Lightbulb className="w-6 h-6 text-amber-500" />
+                    Alternative Paths & Resource Opportunities
+                  </h2>
+                  <p className="text-muted-foreground">Ways to leverage your existing resources, assets, and interests for additional income—even without changing careers</p>
+                </div>
+                {results.alternative_paths && results.alternative_paths.length > 0 ? (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {results.alternative_paths.map((opp, i) => (
+                      <OpportunityCard key={i} opp={opp} type="alternative" />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-card rounded-xl border border-border p-8 text-center">
+                    <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">No alternative paths generated. Try running a new assessment with more details about your assets and interests.</p>
+                  </div>
+                )}
               </div>
             )}
 
