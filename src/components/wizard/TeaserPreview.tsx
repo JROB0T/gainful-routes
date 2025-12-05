@@ -12,9 +12,10 @@ interface TeaserPreviewProps {
   } | null;
   onBack: () => void;
   isLoggedIn: boolean;
+  onBypass?: () => void;
 }
 
-export function TeaserPreview({ analysis, onBack, isLoggedIn }: TeaserPreviewProps) {
+export function TeaserPreview({ analysis, onBack, isLoggedIn, onBypass }: TeaserPreviewProps) {
   const navigate = useNavigate();
 
   if (!analysis) {
@@ -146,11 +147,22 @@ export function TeaserPreview({ analysis, onBack, isLoggedIn }: TeaserPreviewPro
         </div>
       </div>
 
-      <div className="flex justify-start">
+      <div className="flex justify-between items-center">
         <Button variant="ghost" onClick={onBack}>
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </Button>
+        
+        {onBypass && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={onBypass}
+            className="text-xs text-muted-foreground/50 hover:text-muted-foreground"
+          >
+            [Dev Bypass]
+          </Button>
+        )}
       </div>
     </div>
   );
