@@ -454,7 +454,6 @@ export default function GetStarted() {
               analysis={aiAnalysis}
               onBack={handleBack}
               isLoggedIn={isLoggedIn}
-              onBypass={() => setHasPaid(true)}
             />
           )}
 

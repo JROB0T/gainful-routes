@@ -6,6 +6,40 @@ import { Compass, ArrowLeft, Mail, Lock, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { z } from "zod";
+
+// Validation schemas
+const emailSchema = z.string().email("Please enter a valid email address").max(255, "Email is too long");
+
+const passwordSchema = z
+  .string()
+  .min(8, "Password must be at least 8 characters")
+  .max(72, "Password is too long")
+  .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+  .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+  .regex(/[0-9]/, "Password must contain at least one number");
+
+const nameSchema = z.string().min(2, "Name must be at least 2 characters").max(100, "Name is too long");
+
+// User-friendly error messages for common Supabase errors
+const mapAuthError = (error: string): string => {
+  const errorMap: Record<string, string> = {
+    "Invalid login credentials": "Invalid email or password. Please try again.",
+    "Email not confirmed": "Please check your email and confirm your account before signing in.",
+    "User already registered": "An account with this email already exists. Please sign in instead.",
+    "Password should be at least 6 characters": "Password must be at least 8 characters with uppercase, lowercase, and a number.",
+    "Email rate limit exceeded": "Too many attempts. Please wait a few minutes before trying again.",
+    "Signup disabled": "New account registration is currently disabled.",
+  };
+  
+  for (const [key, value] of Object.entries(errorMap)) {
+    if (error.toLowerCase().includes(key.toLowerCase())) {
+      return value;
+    }
+  }
+  
+  return "An unexpected error occurred. Please try again.";
+};
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -14,15 +48,45 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [errors, setErrors] = useState<{ email?: string; password?: string; name?: string }>({});
+
+  const validateForm = (): boolean => {
+    const newErrors: { email?: string; password?: string; name?: string } = {};
+
+    const emailResult = emailSchema.safeParse(email);
+    if (!emailResult.success) {
+      newErrors.email = emailResult.error.errors[0].message;
+    }
+
+    const passwordResult = passwordSchema.safeParse(password);
+    if (!passwordResult.success) {
+      newErrors.password = passwordResult.error.errors[0].message;
+    }
+
+    if (!isLogin) {
+      const nameResult = nameSchema.safeParse(name);
+      if (!nameResult.success) {
+        newErrors.name = nameResult.error.errors[0].message;
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+    
     setIsLoading(true);
 
     try {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({
-          email,
+          email: email.trim(),
           password,
         });
         if (error) throw error;
@@ -30,12 +94,12 @@ export default function Auth() {
         navigate("/dashboard");
       } else {
         const { error } = await supabase.auth.signUp({
-          email,
+          email: email.trim(),
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/`,
             data: {
-              full_name: name,
+              full_name: name.trim(),
             },
           },
         });
@@ -44,7 +108,8 @@ export default function Auth() {
         navigate("/get-started");
       }
     } catch (error: any) {
-      toast.error(error.message || "An error occurred");
+      const message = error?.message || "An error occurred";
+      toast.error(mapAuthError(message));
     } finally {
       setIsLoading(false);
     }
@@ -100,11 +165,17 @@ export default function Auth() {
                     type="text"
                     placeholder="John Doe"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="pl-10"
+                    onChange={(e) => {
+                      setName(e.target.value);
+                      if (errors.name) setErrors({ ...errors, name: undefined });
+                    }}
+                    className={`pl-10 ${errors.name ? "border-destructive" : ""}`}
                     required={!isLogin}
                   />
                 </div>
+                {errors.name && (
+                  <p className="text-sm text-destructive">{errors.name}</p>
+                )}
               </div>
             )}
 
@@ -117,11 +188,17 @@ export default function Auth() {
                   type="email"
                   placeholder="you@example.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (errors.email) setErrors({ ...errors, email: undefined });
+                  }}
+                  className={`pl-10 ${errors.email ? "border-destructive" : ""}`}
                   required
                 />
               </div>
+              {errors.email && (
+                <p className="text-sm text-destructive">{errors.email}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -133,12 +210,22 @@ export default function Auth() {
                   type="password"
                   placeholder="••••••••"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (errors.password) setErrors({ ...errors, password: undefined });
+                  }}
+                  className={`pl-10 ${errors.password ? "border-destructive" : ""}`}
                   required
-                  minLength={6}
                 />
               </div>
+              {errors.password && (
+                <p className="text-sm text-destructive">{errors.password}</p>
+              )}
+              {!isLogin && (
+                <p className="text-xs text-muted-foreground">
+                  8+ characters with uppercase, lowercase, and a number
+                </p>
+              )}
             </div>
 
             <Button
@@ -161,7 +248,10 @@ export default function Auth() {
             {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
             <button
               type="button"
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={() => {
+                setIsLogin(!isLogin);
+                setErrors({});
+              }}
               className="text-primary font-medium hover:underline"
             >
               {isLogin ? "Sign up" : "Sign in"}
