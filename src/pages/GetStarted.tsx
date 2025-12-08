@@ -220,26 +220,56 @@ export default function GetStarted() {
   const handleGenerateOpportunities = async () => {
     setIsGenerating(true);
     
+    // Get current user session
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast.error("Please sign in to generate your assessment");
+      navigate("/auth");
+      return;
+    }
+    
     // Create AbortController with 120 second timeout for recommendations (longer AI call)
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
     }, 120000);
     
+    let assessmentId: string | null = null;
+    
     try {
-      toast.info("Generating your personalized opportunities... This may take 1-2 minutes on mobile.", {
-        duration: 15000,
+      // First, create the assessment record in the database
+      const { data: assessment, error: insertError } = await supabase
+        .from('assessment_results')
+        .insert([{
+          user_id: session.user.id,
+          wizard_data: JSON.parse(JSON.stringify(data)),
+          status: 'processing',
+        }])
+        .select('id')
+        .single();
+      
+      if (insertError) {
+        console.error("Failed to create assessment record:", insertError);
+        throw new Error("Failed to start assessment. Please try again.");
+      }
+      
+      assessmentId = assessment.id;
+      console.log("Created assessment record:", assessmentId);
+      
+      toast.info("Generating your personalized opportunities... This may take 1-2 minutes. You'll receive an email when ready!", {
+        duration: 20000,
       });
       
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-recommendations`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           wizardData: data,
           extractedProfile: aiAnalysis,
+          assessmentId: assessmentId,
         }),
         signal: controller.signal,
       });
@@ -253,19 +283,68 @@ export default function GetStarted() {
 
       const result = await response.json();
       
-      // Store results in sessionStorage for dashboard
+      // Update the assessment record with results
+      const { error: updateError } = await supabase
+        .from('assessment_results')
+        .update({
+          recommendations: JSON.parse(JSON.stringify(result.data)),
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+        })
+        .eq('id', assessmentId);
+      
+      if (updateError) {
+        console.error("Failed to save results to database:", updateError);
+      }
+      
+      // Send email notification (fire and forget)
+      try {
+        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-results-email`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            assessmentId: assessmentId,
+            userEmail: session.user.email,
+            userName: data.firstName || session.user.email?.split('@')[0],
+          }),
+        });
+        console.log("Email notification sent");
+      } catch (emailError) {
+        console.error("Failed to send email notification:", emailError);
+        // Don't fail the whole operation if email fails
+      }
+      
+      // Store results in sessionStorage for immediate access
       sessionStorage.setItem("careermovr_results", JSON.stringify(result.data));
       
       toast.success("Your personalized opportunities are ready!");
-      navigate("/dashboard?generated=true");
+      navigate(`/dashboard?id=${assessmentId}`);
     } catch (error) {
       clearTimeout(timeoutId);
       console.error("Generation error:", error);
       
+      // Update assessment status to failed if we have an ID
+      if (assessmentId) {
+        await supabase
+          .from('assessment_results')
+          .update({
+            status: 'failed',
+            error_message: error instanceof Error ? error.message : 'Unknown error',
+          })
+          .eq('id', assessmentId);
+      }
+      
       if (error instanceof Error && error.name === 'AbortError') {
-        toast.error("Generation timed out. Please try again with a stable WiFi connection.", {
-          duration: 8000,
+        toast.error("Generation timed out. Check your email - we'll notify you when your results are ready!", {
+          duration: 10000,
         });
+        // Navigate to dashboard anyway - they can check back later
+        if (assessmentId) {
+          navigate(`/dashboard?id=${assessmentId}&pending=true`);
+        }
       } else {
         toast.error(error instanceof Error ? error.message : "Failed to generate recommendations");
       }

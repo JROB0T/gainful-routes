@@ -14,7 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      assessment_results: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          expires_at: string | null
+          id: string
+          recommendations: Json | null
+          run_count: number
+          status: string
+          success_plan: Json | null
+          user_id: string
+          wizard_data: Json
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          expires_at?: string | null
+          id?: string
+          recommendations?: Json | null
+          run_count?: number
+          status?: string
+          success_plan?: Json | null
+          user_id: string
+          wizard_data: Json
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          expires_at?: string | null
+          id?: string
+          recommendations?: Json | null
+          run_count?: number
+          status?: string
+          success_plan?: Json | null
+          user_id?: string
+          wizard_data?: Json
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
