@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Compass, ArrowLeft } from "lucide-react";
+import { Compass, ArrowLeft, AlertTriangle } from "lucide-react";
+import { differenceInDays } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Step1BasicInfo } from "@/components/wizard/Step1BasicInfo";
@@ -102,6 +103,7 @@ export default function GetStarted() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasPaid, setHasPaid] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [expiryDate, setExpiryDate] = useState<string | null>(null);
 
   // Handle payment success callback
   useEffect(() => {
@@ -134,6 +136,9 @@ export default function GetStarted() {
           const { data: paymentData, error } = await supabase.functions.invoke("check-payment");
           if (!error && paymentData?.hasPaid) {
             setHasPaid(true);
+            if (paymentData.expiryDate) {
+              setExpiryDate(paymentData.expiryDate);
+            }
           }
         } catch (err) {
           console.error("Failed to check payment status:", err);
@@ -159,12 +164,16 @@ export default function GetStarted() {
           const { data: paymentData, error } = await supabase.functions.invoke("check-payment");
           if (!error && paymentData?.hasPaid) {
             setHasPaid(true);
+            if (paymentData.expiryDate) {
+              setExpiryDate(paymentData.expiryDate);
+            }
           }
         } catch (err) {
           console.error("Failed to check payment status:", err);
         }
       } else {
         setHasPaid(false);
+        setExpiryDate(null);
       }
     });
 
@@ -411,6 +420,12 @@ export default function GetStarted() {
   const totalSteps = hasPaid ? 7 : 3;
   const displayStep = hasPaid ? step : Math.min(step, 3);
 
+  // Calculate days remaining for expiry warning
+  const daysRemaining = expiryDate 
+    ? differenceInDays(new Date(expiryDate), new Date())
+    : null;
+  const showExpiryWarning = hasPaid && daysRemaining !== null && daysRemaining <= 7 && daysRemaining >= 0;
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-hero flex items-center justify-center">
@@ -452,6 +467,25 @@ export default function GetStarted() {
           )}
         </div>
 
+
+        {/* Expiry Warning Banner */}
+        {showExpiryWarning && (
+          <div className="mb-4 p-4 rounded-lg bg-warning/10 border border-warning/30 flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-warning">
+                {daysRemaining === 0 
+                  ? "Your access expires today!" 
+                  : daysRemaining === 1 
+                    ? "Your access expires tomorrow!" 
+                    : `Your access expires in ${daysRemaining} days`}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Complete your assessment before your 30-day access ends.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Progress */}
         <WizardProgress currentStep={displayStep} totalSteps={totalSteps} />
