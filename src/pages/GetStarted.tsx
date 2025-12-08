@@ -107,6 +107,11 @@ export default function GetStarted() {
       const { data: { session } } = await supabase.auth.getSession();
       setIsLoggedIn(!!session);
       
+      // Logged-in users skip the paywall
+      if (session) {
+        setHasPaid(true);
+      }
+      
       // Prefill firstName from user session
       if (session?.user) {
         const userName = session.user.user_metadata?.full_name || 
@@ -121,6 +126,11 @@ export default function GetStarted() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setIsLoggedIn(!!session);
+      
+      // Logged-in users skip the paywall
+      if (session) {
+        setHasPaid(true);
+      }
       
       // Update firstName when auth state changes
       if (session?.user) {
