@@ -140,7 +140,18 @@ export default function GetStarted() {
     }
 
     setIsAnalyzing(true);
+    
+    // Create AbortController with 90 second timeout for mobile
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 90000);
+    
     try {
+      toast.info("Analyzing your profile... This may take up to a minute on mobile.", {
+        duration: 10000,
+      });
+      
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-profile`, {
         method: "POST",
         headers: {
@@ -153,7 +164,10 @@ export default function GetStarted() {
           twitterUrl: data.twitterUrl,
           portfolioUrl: data.portfolioUrl,
         }),
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -187,8 +201,16 @@ export default function GetStarted() {
       toast.success("Profile analyzed successfully!");
       setStep(3); // Go to teaser for free users, or step 3 if paid
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error("AI analysis error:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to analyze profile. Please try again.");
+      
+      if (error instanceof Error && error.name === 'AbortError') {
+        toast.error("Analysis timed out. Please try again with a stable connection.", {
+          duration: 8000,
+        });
+      } else {
+        toast.error(error instanceof Error ? error.message : "Failed to analyze profile. Please try again.");
+      }
     } finally {
       setIsAnalyzing(false);
     }
@@ -197,7 +219,18 @@ export default function GetStarted() {
 
   const handleGenerateOpportunities = async () => {
     setIsGenerating(true);
+    
+    // Create AbortController with 120 second timeout for recommendations (longer AI call)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 120000);
+    
     try {
+      toast.info("Generating your personalized opportunities... This may take 1-2 minutes on mobile.", {
+        duration: 15000,
+      });
+      
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-recommendations`, {
         method: "POST",
         headers: {
@@ -208,7 +241,10 @@ export default function GetStarted() {
           wizardData: data,
           extractedProfile: aiAnalysis,
         }),
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -223,8 +259,16 @@ export default function GetStarted() {
       toast.success("Your personalized opportunities are ready!");
       navigate("/dashboard?generated=true");
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error("Generation error:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to generate recommendations");
+      
+      if (error instanceof Error && error.name === 'AbortError') {
+        toast.error("Generation timed out. Please try again with a stable WiFi connection.", {
+          duration: 8000,
+        });
+      } else {
+        toast.error(error instanceof Error ? error.message : "Failed to generate recommendations");
+      }
     } finally {
       setIsGenerating(false);
     }

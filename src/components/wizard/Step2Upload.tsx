@@ -221,10 +221,11 @@ export function Step2Upload({ data, updateData, onBack, onAutoFill, isAnalyzing 
           className="group"
         >
           {isAnalyzing ? (
-            <>
+            <span className="flex items-center gap-2">
               <Loader2 className="w-4 h-4 animate-spin" />
-              Analyzing...
-            </>
+              <span className="hidden sm:inline">Analyzing your profile...</span>
+              <span className="sm:hidden">Analyzing...</span>
+            </span>
           ) : (
             <>
               <Sparkles className="w-4 h-4" />
