@@ -237,4 +237,10 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  /* Ensure content doesn't get cut off on mobile */
+  .mobile-scroll-safe {
+    min-height: min-content;
+    overflow-y: visible;
+  }
 }

@@ -1020,7 +1020,7 @@ export default function Dashboard() {
         </div>
 
         {isExpanded && (
-          <div className="px-4 sm:px-5 pb-4 sm:pb-5 border-t border-border pt-4 space-y-4 overflow-hidden">
+          <div className="px-4 sm:px-5 pb-4 sm:pb-5 border-t border-border pt-4 space-y-4">
             <div>
               <h4 className="text-sm font-semibold text-foreground mb-2">Why This Fits You</h4>
               <ul className="space-y-1">
@@ -1284,7 +1284,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden max-w-[100vw]">
+    <div className="min-h-screen bg-background overflow-x-hidden max-w-[100vw] overflow-y-auto">
       {/* Header */}
       <header className="border-b border-border bg-card sticky top-0 z-50 overflow-hidden">
         <div className="container px-4 py-4 flex items-center justify-between max-w-full">
@@ -1318,7 +1318,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <div className="container px-4 py-6 max-w-full overflow-x-hidden">
+      <div className="container px-4 py-6 pb-20 max-w-full overflow-x-hidden">
         <div className="flex gap-6 max-w-full">
           {/* Sidebar Navigation */}
           <aside className="w-64 flex-shrink-0 hidden lg:block">
@@ -1434,8 +1434,8 @@ export default function Dashboard() {
             </nav>
           </aside>
 
-          {/* Main Content */}
-          <main className="flex-1 min-w-0 overflow-x-hidden">
+            {/* Main Content */}
+            <main className="flex-1 min-w-0 overflow-x-hidden pb-8">
             {/* Mobile Nav */}
             <div className="lg:hidden flex gap-2 overflow-x-auto pb-4 mb-4 scrollbar-hide -mx-4 px-4">
               <NavItem id="overview" label="Overview" icon={Compass} />
