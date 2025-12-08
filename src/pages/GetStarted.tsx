@@ -122,30 +122,30 @@ export default function GetStarted() {
       const { data: { session } } = await supabase.auth.getSession();
       setIsLoggedIn(!!session);
       
-      // Logged-in users skip the paywall
-      if (session) {
-        setHasPaid(true);
-      }
-      
       // Prefill firstName from user session
       if (session?.user) {
         const userName = session.user.user_metadata?.full_name || 
                          session.user.user_metadata?.name ||
                          session.user.email?.split('@')[0] || '';
         setData(prev => ({ ...prev, firstName: userName }));
+        
+        // Check if user has paid via Stripe
+        try {
+          const { data: paymentData, error } = await supabase.functions.invoke("check-payment");
+          if (!error && paymentData?.hasPaid) {
+            setHasPaid(true);
+          }
+        } catch (err) {
+          console.error("Failed to check payment status:", err);
+        }
       }
       
       setIsLoading(false);
     };
     checkAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setIsLoggedIn(!!session);
-      
-      // Logged-in users skip the paywall
-      if (session) {
-        setHasPaid(true);
-      }
       
       // Update firstName when auth state changes
       if (session?.user) {
@@ -153,6 +153,18 @@ export default function GetStarted() {
                          session.user.user_metadata?.name ||
                          session.user.email?.split('@')[0] || '';
         setData(prev => ({ ...prev, firstName: userName }));
+        
+        // Check payment status on auth change
+        try {
+          const { data: paymentData, error } = await supabase.functions.invoke("check-payment");
+          if (!error && paymentData?.hasPaid) {
+            setHasPaid(true);
+          }
+        } catch (err) {
+          console.error("Failed to check payment status:", err);
+        }
+      } else {
+        setHasPaid(false);
       }
     });
 
