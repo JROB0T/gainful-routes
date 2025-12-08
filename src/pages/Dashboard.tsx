@@ -66,9 +66,16 @@ type Results = {
   profile_summary: ProfileSummary;
 };
 
+type AssessmentSummary = {
+  id: string;
+  created_at: string;
+  status: string;
+  expires_at: string | null;
+};
+
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [results, setResults] = useState<Results | null>(null);
@@ -78,6 +85,50 @@ export default function Dashboard() {
   const [runsLeft] = useState(3);
   const [assessmentStatus, setAssessmentStatus] = useState<string | null>(null);
   const [assessmentId, setAssessmentId] = useState<string | null>(null);
+  const [assessmentHistory, setAssessmentHistory] = useState<AssessmentSummary[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+
+  const loadAssessment = async (id: string) => {
+    setIsLoading(true);
+    const { data: assessment, error } = await supabase
+      .from('assessment_results')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    
+    if (error || !assessment) {
+      console.error("Failed to fetch assessment:", error);
+      setIsLoading(false);
+      return;
+    }
+    
+    setAssessmentId(assessment.id);
+    
+    if (assessment.status === 'completed' && assessment.recommendations) {
+      setResults(assessment.recommendations as unknown as Results);
+      setAssessmentStatus('completed');
+      
+      // Calculate days left
+      if (assessment.expires_at) {
+        const expiresAt = new Date(assessment.expires_at);
+        const now = new Date();
+        const diffTime = expiresAt.getTime() - now.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        setDaysLeft(Math.max(0, diffDays));
+      }
+    } else if (assessment.status === 'processing') {
+      setAssessmentStatus('processing');
+      setResults(null);
+    } else if (assessment.status === 'failed') {
+      setAssessmentStatus('failed');
+      setResults(null);
+    }
+    
+    // Update URL without navigation
+    setSearchParams({ id: assessment.id });
+    setShowHistory(false);
+    setIsLoading(false);
+  };
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -88,13 +139,24 @@ export default function Dashboard() {
       }
       setUser(session.user);
       
+      // Fetch all assessments for history
+      const { data: allAssessments, error: historyError } = await supabase
+        .from('assessment_results')
+        .select('id, created_at, status, expires_at')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false });
+      
+      if (!historyError && allAssessments) {
+        setAssessmentHistory(allAssessments as AssessmentSummary[]);
+      }
+      
       // Check for assessment ID in URL params
       const urlAssessmentId = searchParams.get('id');
       const isPending = searchParams.get('pending') === 'true';
       
       // First try sessionStorage for immediate results
       const stored = sessionStorage.getItem("careermovr_results");
-      if (stored && !isPending) {
+      if (stored && !isPending && !urlAssessmentId) {
         try {
           setResults(JSON.parse(stored));
           setAssessmentStatus('completed');
@@ -107,39 +169,11 @@ export default function Dashboard() {
       if (urlAssessmentId) {
         setAssessmentId(urlAssessmentId);
         await fetchAssessmentResults(urlAssessmentId);
-      } else {
-        // Check for user's most recent assessment
-        const { data: assessments, error } = await supabase
-          .from('assessment_results')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .order('created_at', { ascending: false })
-          .limit(1);
-        
-        if (!error && assessments && assessments.length > 0) {
-          const assessment = assessments[0];
-          setAssessmentId(assessment.id);
-          
-          if (assessment.status === 'completed' && assessment.recommendations) {
-            setResults(assessment.recommendations as unknown as Results);
-            setAssessmentStatus('completed');
-            
-            // Calculate days left
-            if (assessment.expires_at) {
-              const expiresAt = new Date(assessment.expires_at);
-              const now = new Date();
-              const diffTime = expiresAt.getTime() - now.getTime();
-              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-              setDaysLeft(Math.max(0, diffDays));
-            }
-          } else if (assessment.status === 'processing') {
-            setAssessmentStatus('processing');
-            // Subscribe to realtime updates
-            subscribeToAssessment(assessment.id);
-          } else if (assessment.status === 'failed') {
-            setAssessmentStatus('failed');
-          }
-        }
+      } else if (allAssessments && allAssessments.length > 0) {
+        // Load the most recent assessment
+        const mostRecent = allAssessments[0];
+        setAssessmentId(mostRecent.id);
+        await fetchAssessmentResults(mostRecent.id);
       }
       
       setIsLoading(false);
@@ -150,9 +184,9 @@ export default function Dashboard() {
         .from('assessment_results')
         .select('*')
         .eq('id', id)
-        .single();
+        .maybeSingle();
       
-      if (error) {
+      if (error || !assessment) {
         console.error("Failed to fetch assessment:", error);
         return;
       }
@@ -1239,6 +1273,58 @@ export default function Dashboard() {
                   Export PDF
                 </Button>
               </div>
+              
+              {/* Assessment History */}
+              {assessmentHistory.length > 1 && (
+                <div className="pt-4 border-t border-border mt-4">
+                  <button
+                    onClick={() => setShowHistory(!showHistory)}
+                    className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      Assessment History
+                    </span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${showHistory ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  {showHistory && (
+                    <div className="mt-2 space-y-1 max-h-48 overflow-y-auto">
+                      {assessmentHistory.map((assessment) => {
+                        const isActive = assessment.id === assessmentId;
+                        const date = new Date(assessment.created_at);
+                        const isExpired = assessment.expires_at && new Date(assessment.expires_at) < new Date();
+                        
+                        return (
+                          <button
+                            key={assessment.id}
+                            onClick={() => !isActive && loadAssessment(assessment.id)}
+                            disabled={isActive}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                              isActive 
+                                ? 'bg-primary/10 text-primary font-medium' 
+                                : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span>{date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                              {assessment.status === 'processing' && (
+                                <span className="text-xs px-1.5 py-0.5 rounded bg-yellow-500/10 text-yellow-600">Processing</span>
+                              )}
+                              {assessment.status === 'failed' && (
+                                <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/10 text-red-600">Failed</span>
+                              )}
+                              {isExpired && assessment.status === 'completed' && (
+                                <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">Expired</span>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </nav>
           </aside>
 
@@ -1252,8 +1338,56 @@ export default function Dashboard() {
               <NavItem id="ai-proof" label="AI-Proof" icon={Shield} />
               <NavItem id="alternative-paths" label="Resources" icon={Lightbulb} />
               <NavItem id="success-plan" label="Plan" icon={Star} />
+              {assessmentHistory.length > 1 && (
+                <button
+                  onClick={() => setShowHistory(!showHistory)}
+                  className="flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-secondary whitespace-nowrap"
+                >
+                  <Calendar className="w-4 h-4" />
+                  History
+                </button>
+              )}
             </div>
-
+            
+            {/* Mobile History Dropdown */}
+            {showHistory && assessmentHistory.length > 1 && (
+              <div className="lg:hidden mb-4 bg-card rounded-xl border border-border p-4">
+                <h4 className="font-medium text-foreground mb-3">Assessment History</h4>
+                <div className="space-y-2">
+                  {assessmentHistory.map((assessment) => {
+                    const isActive = assessment.id === assessmentId;
+                    const date = new Date(assessment.created_at);
+                    const isExpired = assessment.expires_at && new Date(assessment.expires_at) < new Date();
+                    
+                    return (
+                      <button
+                        key={assessment.id}
+                        onClick={() => !isActive && loadAssessment(assessment.id)}
+                        disabled={isActive}
+                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                          isActive 
+                            ? 'bg-primary/10 text-primary font-medium' 
+                            : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span>{date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                          {assessment.status === 'processing' && (
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-yellow-500/10 text-yellow-600">Processing</span>
+                          )}
+                          {assessment.status === 'failed' && (
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/10 text-red-600">Failed</span>
+                          )}
+                          {isExpired && assessment.status === 'completed' && (
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">Expired</span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             {/* Overview Section */}
             {activeSection === "overview" && (
               <div className="space-y-6">
