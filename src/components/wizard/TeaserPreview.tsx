@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Lock, Sparkles, Target, TrendingUp, Briefcase, Check } from "lucide-react";
+import { ArrowLeft, Lock, Sparkles, Target, TrendingUp, Briefcase, Check, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface TeaserPreviewProps {
   analysis: {
@@ -16,6 +19,38 @@ interface TeaserPreviewProps {
 
 export function TeaserPreview({ analysis, onBack, isLoggedIn }: TeaserPreviewProps) {
   const navigate = useNavigate();
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+  const handlePayment = async () => {
+    if (!isLoggedIn) {
+      navigate("/auth");
+      return;
+    }
+
+    setIsProcessingPayment(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-payment");
+      
+      if (error) {
+        console.error("Payment error:", error);
+        toast.error("Failed to start checkout. Please try again.");
+        return;
+      }
+
+      if (data?.url) {
+        // Open Stripe Checkout in new tab
+        window.open(data.url, "_blank");
+        toast.info("Complete payment in the new tab, then return here.");
+      } else {
+        toast.error("No checkout URL received. Please try again.");
+      }
+    } catch (err) {
+      console.error("Payment error:", err);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
 
   if (!analysis) {
     return (
@@ -128,16 +163,19 @@ export function TeaserPreview({ analysis, onBack, isLoggedIn }: TeaserPreviewPro
             variant="hero"
             size="xl"
             className="w-full sm:w-auto"
-            onClick={() => {
-              if (!isLoggedIn) {
-                navigate("/auth");
-              } else {
-                // Will integrate Stripe here
-                navigate("/dashboard");
-              }
-            }}
+            onClick={handlePayment}
+            disabled={isProcessingPayment}
           >
-            {isLoggedIn ? "Unlock Now — $10" : "Sign Up to Unlock — $10"}
+            {isProcessingPayment ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : isLoggedIn ? (
+              "Unlock Now — $10 + tax"
+            ) : (
+              "Sign Up to Unlock — $10 + tax"
+            )}
           </Button>
 
           <p className="text-xs text-muted-foreground mt-4">
