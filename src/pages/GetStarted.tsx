@@ -106,12 +106,29 @@ export default function GetStarted() {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setIsLoggedIn(!!session);
+      
+      // Prefill firstName from user session
+      if (session?.user) {
+        const userName = session.user.user_metadata?.full_name || 
+                         session.user.user_metadata?.name ||
+                         session.user.email?.split('@')[0] || '';
+        setData(prev => ({ ...prev, firstName: userName }));
+      }
+      
       setIsLoading(false);
     };
     checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setIsLoggedIn(!!session);
+      
+      // Update firstName when auth state changes
+      if (session?.user) {
+        const userName = session.user.user_metadata?.full_name || 
+                         session.user.user_metadata?.name ||
+                         session.user.email?.split('@')[0] || '';
+        setData(prev => ({ ...prev, firstName: userName }));
+      }
     });
 
     return () => subscription.unsubscribe();

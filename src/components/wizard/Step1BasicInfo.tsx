@@ -52,17 +52,6 @@ export function Step1BasicInfo({ data, updateData, onNext }: Step1Props) {
       </div>
 
       <div className="space-y-5">
-        {/* First name */}
-        <div className="space-y-2">
-          <Label htmlFor="firstName">First Name (optional)</Label>
-          <Input
-            id="firstName"
-            placeholder="Your first name"
-            value={data.firstName}
-            onChange={(e) => updateData({ firstName: e.target.value })}
-          />
-        </div>
-
         {/* State */}
         <div className="space-y-2">
           <Label htmlFor="state">U.S. State *</Label>
