@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Compass, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -93,6 +93,7 @@ const initialData: WizardData = {
 
 export default function GetStarted() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [step, setStep] = useState(1);
   const [data, setData] = useState<WizardData>(initialData);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -101,6 +102,20 @@ export default function GetStarted() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasPaid, setHasPaid] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Handle payment success callback
+  useEffect(() => {
+    const paymentStatus = searchParams.get("payment");
+    if (paymentStatus === "success") {
+      setHasPaid(true);
+      toast.success("Payment successful! You now have full access.");
+      // Clear the query param
+      setSearchParams({});
+    } else if (paymentStatus === "cancelled") {
+      toast.info("Payment was cancelled.");
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     const checkAuth = async () => {

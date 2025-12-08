@@ -8,3 +8,6 @@ verify_jwt = true
 
 [functions.send-results-email]
 verify_jwt = true
+
+[functions.create-payment]
+verify_jwt = false
