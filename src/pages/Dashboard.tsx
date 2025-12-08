@@ -985,49 +985,49 @@ export default function Dashboard() {
     const diffInfo = getDifficultyLabel(opp.difficulty);
     
     return (
-      <div className="bg-card rounded-xl border border-border overflow-hidden hover:border-primary/30 transition-all">
+      <div className="bg-card rounded-xl border border-border overflow-hidden hover:border-primary/30 transition-all max-w-full">
         <div
-          className="p-5 cursor-pointer"
+          className="p-4 sm:p-5 cursor-pointer"
           onClick={() => setExpandedCard(isExpanded ? null : opp.title)}
         >
           <div className="flex items-start justify-between mb-3">
-            <span className={`text-xs font-medium px-2 py-1 rounded-full border ${getTypeColor(opp.type)}`}>
+            <span className={`text-xs font-medium px-2 py-1 rounded-full border ${getTypeColor(opp.type)} truncate max-w-[70%]`}>
               {opp.type}
             </span>
-            {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+            {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" /> : <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />}
           </div>
           
-          <h3 className="font-display font-bold text-foreground mb-3">{opp.title}</h3>
+          <h3 className="font-display font-bold text-foreground mb-3 break-words">{opp.title}</h3>
 
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Clock className="w-3.5 h-3.5" />
-              <span>{opp.time_commitment}</span>
+            <div className="flex items-center gap-1.5 text-muted-foreground min-w-0">
+              <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate">{opp.time_commitment}</span>
             </div>
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <DollarSign className="w-3.5 h-3.5" />
-              <span>{getIncomeLabel(opp.income_potential)}</span>
+            <div className="flex items-center gap-1.5 text-muted-foreground min-w-0">
+              <DollarSign className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate">{getIncomeLabel(opp.income_potential)}</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <TrendingUp className="w-3.5 h-3.5" />
-              <span className={diffInfo.color}>{diffInfo.label}</span>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <TrendingUp className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className={`${diffInfo.color} truncate`}>{diffInfo.label}</span>
             </div>
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Zap className="w-3.5 h-3.5" />
-              <span>{opp.ramp_time}</span>
+            <div className="flex items-center gap-1.5 text-muted-foreground min-w-0">
+              <Zap className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate">{opp.ramp_time}</span>
             </div>
           </div>
         </div>
 
         {isExpanded && (
-          <div className="px-5 pb-5 border-t border-border pt-4 space-y-4">
+          <div className="px-4 sm:px-5 pb-4 sm:pb-5 border-t border-border pt-4 space-y-4 overflow-hidden">
             <div>
               <h4 className="text-sm font-semibold text-foreground mb-2">Why This Fits You</h4>
               <ul className="space-y-1">
                 {opp.reason_fit?.map((r: string, i: number) => (
                   <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 text-green-500 mt-0.5 flex-shrink-0" />
-                    {r}
+                    <span className="break-words">{r}</span>
                   </li>
                 ))}
               </ul>
@@ -1036,17 +1036,17 @@ export default function Dashboard() {
             {type === "ai-centric" && opp.skill_bridge && (
               <div>
                 <h4 className="text-sm font-semibold text-foreground mb-2">Skill Bridge</h4>
-                <p className="text-sm text-muted-foreground">{opp.skill_bridge}</p>
+                <p className="text-sm text-muted-foreground break-words">{opp.skill_bridge}</p>
                 {opp.entry_points && (
                   <div className="mt-2">
                     <span className="text-xs text-muted-foreground">Entry Points: </span>
-                    <span className="text-xs text-foreground">{opp.entry_points.join(", ")}</span>
+                    <span className="text-xs text-foreground break-words">{opp.entry_points.join(", ")}</span>
                   </div>
                 )}
                 {opp.competitive_edge && (
                   <div className="mt-1">
                     <span className="text-xs text-muted-foreground">Competitive Edge: </span>
-                    <span className="text-xs text-foreground">{opp.competitive_edge}</span>
+                    <span className="text-xs text-foreground break-words">{opp.competitive_edge}</span>
                   </div>
                 )}
               </div>
@@ -1055,11 +1055,11 @@ export default function Dashboard() {
             {type === "ai-proof" && opp.human_advantage && (
               <div>
                 <h4 className="text-sm font-semibold text-foreground mb-2">Human Advantage</h4>
-                <p className="text-sm text-muted-foreground">{opp.human_advantage}</p>
+                <p className="text-sm text-muted-foreground break-words">{opp.human_advantage}</p>
                 {opp.monetization_path && (
                   <div className="mt-2">
                     <span className="text-xs text-muted-foreground">Path to Income: </span>
-                    <span className="text-xs text-foreground">{opp.monetization_path}</span>
+                    <span className="text-xs text-foreground break-words">{opp.monetization_path}</span>
                   </div>
                 )}
               </div>
@@ -1068,7 +1068,7 @@ export default function Dashboard() {
             {type === "alternative" && opp.resource_leveraged && (
               <div>
                 <h4 className="text-sm font-semibold text-foreground mb-2">Resource Leveraged</h4>
-                <p className="text-sm text-muted-foreground">{opp.resource_leveraged}</p>
+                <p className="text-sm text-muted-foreground break-words">{opp.resource_leveraged}</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {opp.effort_level && (
                     <span className="text-xs px-2 py-1 rounded-full bg-secondary text-secondary-foreground">
@@ -1079,7 +1079,7 @@ export default function Dashboard() {
                 {opp.passive_potential && (
                   <div className="mt-2">
                     <span className="text-xs text-muted-foreground">Passive Potential: </span>
-                    <span className="text-xs text-foreground">{opp.passive_potential}</span>
+                    <span className="text-xs text-foreground break-words">{opp.passive_potential}</span>
                   </div>
                 )}
               </div>
@@ -1090,13 +1090,13 @@ export default function Dashboard() {
                 {opp.why_unconventional && (
                   <div>
                     <h4 className="text-sm font-semibold text-foreground mb-1">Why This Is Different</h4>
-                    <p className="text-sm text-muted-foreground">{opp.why_unconventional}</p>
+                    <p className="text-sm text-muted-foreground break-words">{opp.why_unconventional}</p>
                   </div>
                 )}
                 {opp.personality_match && (
                   <div>
                     <h4 className="text-sm font-semibold text-foreground mb-1">Personality Match</h4>
-                    <p className="text-sm text-muted-foreground">{opp.personality_match}</p>
+                    <p className="text-sm text-muted-foreground break-words">{opp.personality_match}</p>
                   </div>
                 )}
                 {opp.transferable_strengths && opp.transferable_strengths.length > 0 && (
@@ -1104,7 +1104,7 @@ export default function Dashboard() {
                     <h4 className="text-sm font-semibold text-foreground mb-1">Transferable Strengths</h4>
                     <div className="flex flex-wrap gap-1.5">
                       {opp.transferable_strengths.map((strength: string, i: number) => (
-                        <span key={i} className="text-xs px-2 py-1 rounded-full bg-purple-500/10 text-purple-600 border border-purple-500/20">
+                        <span key={i} className="text-xs px-2 py-1 rounded-full bg-purple-500/10 text-purple-600 border border-purple-500/20 break-words">
                           {strength}
                         </span>
                       ))}
@@ -1114,7 +1114,7 @@ export default function Dashboard() {
                 {opp.realistic_entry && (
                   <div>
                     <h4 className="text-sm font-semibold text-foreground mb-1">How to Get Started</h4>
-                    <p className="text-sm text-muted-foreground">{opp.realistic_entry}</p>
+                    <p className="text-sm text-muted-foreground break-words">{opp.realistic_entry}</p>
                   </div>
                 )}
               </div>
@@ -1128,7 +1128,7 @@ export default function Dashboard() {
                     <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center flex-shrink-0">
                       {i + 1}
                     </span>
-                    {step}
+                    <span className="break-words">{step}</span>
                   </li>
                 ))}
               </ol>
@@ -1284,10 +1284,10 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden max-w-[100vw]">
       {/* Header */}
-      <header className="border-b border-border bg-card sticky top-0 z-50">
-        <div className="container px-4 py-4 flex items-center justify-between">
+      <header className="border-b border-border bg-card sticky top-0 z-50 overflow-hidden">
+        <div className="container px-4 py-4 flex items-center justify-between max-w-full">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
               <Compass className="w-5 h-5 text-primary-foreground" />
@@ -1295,18 +1295,21 @@ export default function Dashboard() {
             <span className="font-display font-bold text-lg text-foreground">CareerMovr</span>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary text-sm">
+          <div className="flex items-center gap-2 sm:gap-3 overflow-hidden">
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary text-sm">
               <Calendar className="w-4 h-4 text-muted-foreground" />
               <span className="text-foreground font-medium">{daysLeft} days left</span>
             </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary text-sm">
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary text-sm">
               <RefreshCw className="w-4 h-4 text-muted-foreground" />
               <span className="text-foreground font-medium">{runsLeft} runs left</span>
             </div>
-            <Button variant="outline" size="sm" onClick={() => navigate("/get-started")}>
+            <Button variant="outline" size="sm" onClick={() => navigate("/get-started")} className="hidden sm:flex">
               <RefreshCw className="w-4 h-4 mr-2" />
               New Assessment
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate("/get-started")} className="sm:hidden">
+              <RefreshCw className="w-4 h-4" />
             </Button>
             <Button variant="ghost" size="sm" onClick={handleLogout}>
               <LogOut className="w-4 h-4" />
@@ -1315,8 +1318,8 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <div className="container px-4 py-6">
-        <div className="flex gap-6">
+      <div className="container px-4 py-6 max-w-full overflow-x-hidden">
+        <div className="flex gap-6 max-w-full">
           {/* Sidebar Navigation */}
           <aside className="w-64 flex-shrink-0 hidden lg:block">
             <nav className="sticky top-24 space-y-1">
@@ -1432,9 +1435,9 @@ export default function Dashboard() {
           </aside>
 
           {/* Main Content */}
-          <main className="flex-1 min-w-0">
+          <main className="flex-1 min-w-0 overflow-x-hidden">
             {/* Mobile Nav */}
-            <div className="lg:hidden flex gap-2 overflow-x-auto pb-4 mb-4 scrollbar-hide">
+            <div className="lg:hidden flex gap-2 overflow-x-auto pb-4 mb-4 scrollbar-hide -mx-4 px-4">
               <NavItem id="overview" label="Overview" icon={Compass} />
               <NavItem id="analytics" label="Analytics" icon={BarChart3} />
               <NavItem id="recommendations" label="Recommendations" icon={Target} />
