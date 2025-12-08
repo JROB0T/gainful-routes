@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { 
   Compass, LogOut, User, Calendar, RefreshCw, Download, ChevronRight, ChevronDown,
   Sparkles, Lock, Target, Zap, TrendingUp, Clock, DollarSign, CheckCircle2,
-  Brain, Shield, Rocket, Star, ArrowRight, Printer, Lightbulb, Package
+  Brain, Shield, Rocket, Star, ArrowRight, Printer, Lightbulb, Package, Loader2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -68,13 +68,16 @@ type Results = {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [results, setResults] = useState<Results | null>(null);
   const [activeSection, setActiveSection] = useState<string>("overview");
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
-  const [daysLeft] = useState(30);
+  const [daysLeft, setDaysLeft] = useState(30);
   const [runsLeft] = useState(3);
+  const [assessmentStatus, setAssessmentStatus] = useState<string | null>(null);
+  const [assessmentId, setAssessmentId] = useState<string | null>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -85,17 +88,128 @@ export default function Dashboard() {
       }
       setUser(session.user);
       
+      // Check for assessment ID in URL params
+      const urlAssessmentId = searchParams.get('id');
+      const isPending = searchParams.get('pending') === 'true';
+      
+      // First try sessionStorage for immediate results
       const stored = sessionStorage.getItem("careermovr_results");
-      if (stored) {
+      if (stored && !isPending) {
         try {
           setResults(JSON.parse(stored));
+          setAssessmentStatus('completed');
         } catch (e) {
           console.error("Failed to parse results:", e);
         }
       }
       
+      // If we have an assessment ID, fetch from database
+      if (urlAssessmentId) {
+        setAssessmentId(urlAssessmentId);
+        await fetchAssessmentResults(urlAssessmentId);
+      } else {
+        // Check for user's most recent assessment
+        const { data: assessments, error } = await supabase
+          .from('assessment_results')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        
+        if (!error && assessments && assessments.length > 0) {
+          const assessment = assessments[0];
+          setAssessmentId(assessment.id);
+          
+          if (assessment.status === 'completed' && assessment.recommendations) {
+            setResults(assessment.recommendations as unknown as Results);
+            setAssessmentStatus('completed');
+            
+            // Calculate days left
+            if (assessment.expires_at) {
+              const expiresAt = new Date(assessment.expires_at);
+              const now = new Date();
+              const diffTime = expiresAt.getTime() - now.getTime();
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              setDaysLeft(Math.max(0, diffDays));
+            }
+          } else if (assessment.status === 'processing') {
+            setAssessmentStatus('processing');
+            // Subscribe to realtime updates
+            subscribeToAssessment(assessment.id);
+          } else if (assessment.status === 'failed') {
+            setAssessmentStatus('failed');
+          }
+        }
+      }
+      
       setIsLoading(false);
     };
+    
+    const fetchAssessmentResults = async (id: string) => {
+      const { data: assessment, error } = await supabase
+        .from('assessment_results')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (error) {
+        console.error("Failed to fetch assessment:", error);
+        return;
+      }
+      
+      if (assessment.status === 'completed' && assessment.recommendations) {
+        setResults(assessment.recommendations as unknown as Results);
+        setAssessmentStatus('completed');
+        
+        // Calculate days left
+        if (assessment.expires_at) {
+          const expiresAt = new Date(assessment.expires_at);
+          const now = new Date();
+          const diffTime = expiresAt.getTime() - now.getTime();
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          setDaysLeft(Math.max(0, diffDays));
+        }
+      } else if (assessment.status === 'processing') {
+        setAssessmentStatus('processing');
+        subscribeToAssessment(id);
+      } else if (assessment.status === 'failed') {
+        setAssessmentStatus('failed');
+      }
+    };
+    
+    const subscribeToAssessment = (id: string) => {
+      const channel = supabase
+        .channel(`assessment-${id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'assessment_results',
+            filter: `id=eq.${id}`,
+          },
+          (payload) => {
+            console.log("Assessment update received:", payload);
+            const newData = payload.new as any;
+            if (newData.status === 'completed' && newData.recommendations) {
+              setResults(newData.recommendations as unknown as Results);
+              setAssessmentStatus('completed');
+              toast.success("Your assessment results are ready!");
+              supabase.removeChannel(channel);
+            } else if (newData.status === 'failed') {
+              setAssessmentStatus('failed');
+              toast.error("Assessment generation failed. Please try again.");
+              supabase.removeChannel(channel);
+            }
+          }
+        )
+        .subscribe();
+      
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    };
+    
     checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -107,7 +221,7 @@ export default function Dashboard() {
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, searchParams]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -939,6 +1053,99 @@ export default function Dashboard() {
   }
 
   const hasResults = results && results.recommendations && results.recommendations.length > 0;
+
+  // Show processing state
+  if (assessmentStatus === 'processing') {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="border-b border-border bg-card sticky top-0 z-50">
+          <div className="container px-4 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
+                <Compass className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <span className="font-display font-bold text-lg text-foreground">CareerMovr</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-muted-foreground">{user?.email}</span>
+              <Button variant="ghost" size="sm" onClick={handleLogout}>
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        <main className="container px-4 py-8">
+          <div className="max-w-2xl mx-auto text-center">
+            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
+              <Loader2 className="w-10 h-10 text-primary animate-spin" />
+            </div>
+            <h1 className="text-3xl font-display font-bold text-foreground mb-4">
+              Generating Your Assessment
+            </h1>
+            <p className="text-muted-foreground mb-4">
+              Our AI is analyzing your profile and creating personalized recommendations.
+              This usually takes 1-2 minutes.
+            </p>
+            <div className="bg-card rounded-xl border border-border p-6 mb-6">
+              <p className="text-sm text-muted-foreground mb-2">
+                You can safely close this page - we'll email you when your results are ready!
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Check your inbox for an email from CareerMovr with a link to view your results.
+              </p>
+            </div>
+            <Button variant="outline" onClick={() => window.location.reload()}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Check Status
+            </Button>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Show failed state
+  if (assessmentStatus === 'failed') {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="border-b border-border bg-card sticky top-0 z-50">
+          <div className="container px-4 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
+                <Compass className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <span className="font-display font-bold text-lg text-foreground">CareerMovr</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-muted-foreground">{user?.email}</span>
+              <Button variant="ghost" size="sm" onClick={handleLogout}>
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        <main className="container px-4 py-8">
+          <div className="max-w-2xl mx-auto text-center">
+            <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-6">
+              <Target className="w-8 h-8 text-destructive" />
+            </div>
+            <h1 className="text-3xl font-display font-bold text-foreground mb-4">
+              Assessment Generation Failed
+            </h1>
+            <p className="text-muted-foreground mb-8">
+              We encountered an issue while generating your assessment. Please try again.
+            </p>
+            <Button variant="hero" size="xl" onClick={() => navigate("/get-started")}>
+              <RefreshCw className="w-5 h-5" />
+              Try Again
+            </Button>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   if (!hasResults) {
     return (
