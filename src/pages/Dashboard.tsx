@@ -5,9 +5,23 @@ import { Button } from "@/components/ui/button";
 import { 
   Compass, LogOut, User, Calendar, RefreshCw, Download, ChevronRight, ChevronDown,
   Sparkles, Lock, Target, Zap, TrendingUp, Clock, DollarSign, CheckCircle2,
-  Brain, Shield, Rocket, Star, ArrowRight, Printer, Lightbulb, Package, Loader2
+  Brain, Shield, Rocket, Star, ArrowRight, Printer, Lightbulb, Package, Loader2, BarChart3
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  WorkStyleRadarChart,
+  OpportunityTypeChart,
+  IncomePotentialChart,
+  DifficultyIncomeMatrix,
+  CategoryBreakdown,
+  StrengthsCloud,
+  SkillGapsProgress,
+  ThirtyDayProgress,
+  QuickWinsChecklist,
+  ProfileCompleteness,
+  AssetInventory,
+  TimeToIncomeTimeline,
+} from "@/components/dashboard/AnalyticsCharts";
 
 type BaseOpportunity = {
   title: string;
@@ -87,6 +101,7 @@ export default function Dashboard() {
   const [assessmentId, setAssessmentId] = useState<string | null>(null);
   const [assessmentHistory, setAssessmentHistory] = useState<AssessmentSummary[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [wizardData, setWizardData] = useState<any>(null);
 
   const loadAssessment = async (id: string) => {
     setIsLoading(true);
@@ -103,6 +118,7 @@ export default function Dashboard() {
     }
     
     setAssessmentId(assessment.id);
+    setWizardData(assessment.wizard_data);
     
     if (assessment.status === 'completed' && assessment.recommendations) {
       setResults(assessment.recommendations as unknown as Results);
@@ -190,6 +206,8 @@ export default function Dashboard() {
         console.error("Failed to fetch assessment:", error);
         return;
       }
+      
+      setWizardData(assessment.wizard_data);
       
       if (assessment.status === 'completed' && assessment.recommendations) {
         setResults(assessment.recommendations as unknown as Results);
@@ -1260,6 +1278,7 @@ export default function Dashboard() {
           <aside className="w-64 flex-shrink-0 hidden lg:block">
             <nav className="sticky top-24 space-y-1">
               <NavItem id="overview" label="Overview" icon={Compass} />
+              <NavItem id="analytics" label="Analytics" icon={BarChart3} />
               <NavItem id="recommendations" label="Recommendations" icon={Target} count={results.recommendations?.length} />
               <NavItem id="ai-centric" label="AI Opportunities" icon={Brain} count={results.ai_centric_opportunities?.length} />
               <NavItem id="ai-proof" label="AI-Proof Roles" icon={Shield} count={results.ai_proof_opportunities?.length} />
@@ -1333,6 +1352,7 @@ export default function Dashboard() {
             {/* Mobile Nav */}
             <div className="lg:hidden flex gap-2 overflow-x-auto pb-4 mb-4 scrollbar-hide">
               <NavItem id="overview" label="Overview" icon={Compass} />
+              <NavItem id="analytics" label="Analytics" icon={BarChart3} />
               <NavItem id="recommendations" label="Recommendations" icon={Target} />
               <NavItem id="ai-centric" label="AI Opps" icon={Brain} />
               <NavItem id="ai-proof" label="AI-Proof" icon={Shield} />
@@ -1388,6 +1408,46 @@ export default function Dashboard() {
                 </div>
               </div>
             )}
+
+            {/* Analytics Section */}
+            {activeSection === "analytics" && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
+                  <BarChart3 className="w-6 h-6 text-primary" />
+                  Analytics & Insights
+                </h2>
+                
+                <div className="grid md:grid-cols-2 gap-6">
+                  <WorkStyleRadarChart wizardData={wizardData} />
+                  <OpportunityTypeChart results={results} />
+                </div>
+                
+                <div className="grid md:grid-cols-2 gap-6">
+                  <IncomePotentialChart results={results} />
+                  <CategoryBreakdown results={results} />
+                </div>
+                
+                <DifficultyIncomeMatrix results={results} />
+                
+                <div className="grid md:grid-cols-2 gap-6">
+                  <StrengthsCloud results={results} />
+                  <TimeToIncomeTimeline results={results} />
+                </div>
+                
+                <div className="grid md:grid-cols-2 gap-6">
+                  <ProfileCompleteness wizardData={wizardData} />
+                  <AssetInventory wizardData={wizardData} />
+                </div>
+                
+                <div className="grid md:grid-cols-2 gap-6">
+                  <QuickWinsChecklist results={results} />
+                  <SkillGapsProgress results={results} />
+                </div>
+                
+                <ThirtyDayProgress results={results} />
+              </div>
+            )}
+
             {/* Overview Section */}
             {activeSection === "overview" && (
               <div className="space-y-6">
