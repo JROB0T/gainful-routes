@@ -53,6 +53,13 @@ type AlternativePath = BaseOpportunity & {
   passive_potential: string;
 };
 
+type AlternativeOption = BaseOpportunity & {
+  why_unconventional: string;
+  personality_match: string;
+  transferable_strengths: string[];
+  realistic_entry: string;
+};
+
 type SuccessPlan = {
   strengths: string[];
   skill_gaps: string[];
@@ -75,6 +82,7 @@ type Results = {
   ai_centric_opportunities: AICentricOpportunity[];
   ai_proof_opportunities: AIProofOpportunity[];
   alternative_paths: AlternativePath[];
+  alternative_options?: AlternativeOption[];
   success_plan: SuccessPlan;
   low_hanging_fruit: string[];
   profile_summary: ProfileSummary;
@@ -1077,6 +1085,41 @@ export default function Dashboard() {
               </div>
             )}
 
+            {type === "alternative-option" && (
+              <div className="space-y-3">
+                {opp.why_unconventional && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-foreground mb-1">Why This Is Different</h4>
+                    <p className="text-sm text-muted-foreground">{opp.why_unconventional}</p>
+                  </div>
+                )}
+                {opp.personality_match && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-foreground mb-1">Personality Match</h4>
+                    <p className="text-sm text-muted-foreground">{opp.personality_match}</p>
+                  </div>
+                )}
+                {opp.transferable_strengths && opp.transferable_strengths.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-foreground mb-1">Transferable Strengths</h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {opp.transferable_strengths.map((strength: string, i: number) => (
+                        <span key={i} className="text-xs px-2 py-1 rounded-full bg-purple-500/10 text-purple-600 border border-purple-500/20">
+                          {strength}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {opp.realistic_entry && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-foreground mb-1">How to Get Started</h4>
+                    <p className="text-sm text-muted-foreground">{opp.realistic_entry}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div>
               <h4 className="text-sm font-semibold text-foreground mb-2">First 3 Steps</h4>
               <ol className="space-y-1">
@@ -1283,6 +1326,7 @@ export default function Dashboard() {
               <NavItem id="ai-centric" label="AI Opportunities" icon={Brain} count={results.ai_centric_opportunities?.length} />
               <NavItem id="ai-proof" label="AI-Proof Roles" icon={Shield} count={results.ai_proof_opportunities?.length} />
               <NavItem id="alternative-paths" label="Resource & Asset Paths" icon={Lightbulb} count={results.alternative_paths?.length} />
+              <NavItem id="alternative-options" label="Alternative Options" icon={Sparkles} count={results.alternative_options?.length} />
               <NavItem id="quick-wins" label="Quick Wins" icon={Rocket} />
               <NavItem id="success-plan" label="Success Plan" icon={Star} />
               
@@ -1397,6 +1441,7 @@ export default function Dashboard() {
               <NavItem id="ai-centric" label="AI Opps" icon={Brain} />
               <NavItem id="ai-proof" label="AI-Proof" icon={Shield} />
               <NavItem id="alternative-paths" label="Resources" icon={Lightbulb} />
+              <NavItem id="alternative-options" label="Alt Options" icon={Sparkles} />
               <NavItem id="success-plan" label="Plan" icon={Star} />
               {assessmentHistory.length > 1 && (
                 <button
@@ -1652,6 +1697,31 @@ export default function Dashboard() {
                   <div className="bg-card rounded-xl border border-border p-8 text-center">
                     <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                     <p className="text-muted-foreground">No alternative paths generated. Try running a new assessment with more details about your assets and interests.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Alternative Options Section */}
+            {activeSection === "alternative-options" && (
+              <div className="space-y-4">
+                <div className="mb-6">
+                  <h2 className="text-2xl font-display font-bold text-foreground mb-2 flex items-center gap-2">
+                    <Sparkles className="w-6 h-6 text-purple-500" />
+                    Alternative Options
+                  </h2>
+                  <p className="text-muted-foreground">Unconventional career paths completely outside your experience that could be a great fit based on your personality, interests, and transferable strengths</p>
+                </div>
+                {results.alternative_options && results.alternative_options.length > 0 ? (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {results.alternative_options.map((opp, i) => (
+                      <OpportunityCard key={i} opp={opp} type="alternative-option" />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-card rounded-xl border border-border p-8 text-center">
+                    <Sparkles className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">No alternative options generated yet. Run a new assessment to get unconventional career suggestions based on your personality and interests.</p>
                   </div>
                 )}
               </div>

@@ -216,7 +216,13 @@ OUTPUT REQUIREMENTS:
    - Passive income opportunities matching their situation
    - Consulting/teaching others based on their expertise
    - Resource-based opportunities (rental, licensing, etc.)
-5. COMPLETE SUCCESS PLAN with all 7 sections
+5. ALTERNATIVE OPTIONS (3-6): Career paths COMPLETELY OUTSIDE the user's current experience and industry that could be good fits based ONLY on their personality traits, interests, assets, and transferable soft skills. These should be surprising, unconventional pivots - fields they've never worked in but might thrive in. Focus on:
+   - Careers that match their personality profile (risk tolerance, autonomy preference, structure needs)
+   - Fields that align with their interests but not their work history
+   - Industries that could benefit from their soft skills in unexpected ways
+   - Opportunities that leverage their assets in a completely new context
+   - "What if you tried something totally different?" suggestions
+6. COMPLETE SUCCESS PLAN with all 7 sections
 
 For EACH recommendation include:
 - title: Clear, specific title
@@ -241,6 +247,12 @@ For ALTERNATIVE PATHS also include:
 - resource_leveraged: What specific asset, interest, or resource this leverages
 - effort_level: Minimal, Part-time, or Active
 - passive_potential: Whether this can become passive income over time
+
+For ALTERNATIVE OPTIONS also include:
+- why_unconventional: Why this is outside their typical experience
+- personality_match: How their personality traits make them suited for this
+- transferable_strengths: What soft skills or traits transfer to this field
+- realistic_entry: How someone with no direct experience could actually enter this field
 
 Be SPECIFIC. Reference the user's actual skills, experience, and constraints. No generic advice.`;
 
@@ -333,6 +345,28 @@ Be SPECIFIC. Reference the user's actual skills, experience, and constraints. No
                   required: ["title", "type", "reason_fit", "resource_leveraged", "effort_level", "passive_potential", "difficulty", "time_commitment", "ramp_time", "income_potential", "first_3_steps"]
                 }
               },
+              alternative_options: {
+                type: "array",
+                description: "3-6 unconventional career paths completely outside user's experience based on personality and interests",
+                items: {
+                  type: "object",
+                  properties: {
+                    title: { type: "string" },
+                    type: { type: "string", enum: ["career", "consulting", "freelance", "business", "creator"] },
+                    reason_fit: { type: "array", items: { type: "string" } },
+                    why_unconventional: { type: "string", description: "Why this is outside their typical experience" },
+                    personality_match: { type: "string", description: "How their personality traits make them suited for this" },
+                    transferable_strengths: { type: "array", items: { type: "string" }, description: "What soft skills or traits transfer to this field" },
+                    realistic_entry: { type: "string", description: "How someone with no direct experience could enter this field" },
+                    difficulty: { type: "string", enum: ["L", "M", "H"] },
+                    time_commitment: { type: "string" },
+                    ramp_time: { type: "string" },
+                    income_potential: { type: "string", enum: ["L", "M", "H"] },
+                    first_3_steps: { type: "array", items: { type: "string" } }
+                  },
+                  required: ["title", "type", "reason_fit", "why_unconventional", "personality_match", "transferable_strengths", "realistic_entry", "difficulty", "time_commitment", "ramp_time", "income_potential", "first_3_steps"]
+                }
+              },
               success_plan: {
                 type: "object",
                 properties: {
@@ -413,7 +447,7 @@ Be SPECIFIC. Reference the user's actual skills, experience, and constraints. No
                 required: ["headline", "top_skills", "experience_level", "best_fit_types"]
               }
             },
-            required: ["recommendations", "ai_centric_opportunities", "ai_proof_opportunities", "alternative_paths", "success_plan", "low_hanging_fruit", "profile_summary"]
+            required: ["recommendations", "ai_centric_opportunities", "ai_proof_opportunities", "alternative_paths", "alternative_options", "success_plan", "low_hanging_fruit", "profile_summary"]
           }
         }
       }
@@ -498,7 +532,8 @@ Be SPECIFIC. Reference the user's actual skills, experience, and constraints. No
       recommendations: recommendations.recommendations?.length,
       aiCentric: recommendations.ai_centric_opportunities?.length,
       aiProof: recommendations.ai_proof_opportunities?.length,
-      alternativePaths: recommendations.alternative_paths?.length
+      alternativePaths: recommendations.alternative_paths?.length,
+      alternativeOptions: recommendations.alternative_options?.length
     });
 
     return new Response(JSON.stringify({ 
