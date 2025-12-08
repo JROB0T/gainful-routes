@@ -40,7 +40,9 @@ serve(async (req) => {
     const appUrl = Deno.env.get("APP_URL") || "https://careermovr.lovable.app";
     const dashboardUrl = `${appUrl}/dashboard?id=${assessmentId}`;
 
-    console.log("Sending results email to:", userEmail);
+    // Mask email for privacy in logs
+    const maskedEmail = userEmail.replace(/(.{2}).*(@.*)/, "$1***$2");
+    console.log("Sending results email to:", maskedEmail);
 
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
