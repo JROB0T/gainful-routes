@@ -1293,6 +1293,46 @@ export default function Dashboard() {
                 </Button>
               </div>
               
+              {/* Current Assessment Info */}
+              {assessmentHistory.length >= 1 && (
+                <div className="pt-4 border-t border-border mt-4">
+                  <div className="px-3 py-2 text-sm">
+                    <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                      <Calendar className="w-4 h-4" />
+                      <span className="font-medium">Current Assessment</span>
+                    </div>
+                    {assessmentHistory.find(a => a.id === assessmentId) && (() => {
+                      const current = assessmentHistory.find(a => a.id === assessmentId)!;
+                      const date = new Date(current.created_at);
+                      const isExpired = current.expires_at && new Date(current.expires_at) < new Date();
+                      return (
+                        <div className="space-y-1 text-sm">
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">Created:</span>
+                            <span className="text-foreground">{date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">Status:</span>
+                            {current.status === 'completed' && !isExpired && (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-600">Completed</span>
+                            )}
+                            {current.status === 'processing' && (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-600">Processing</span>
+                            )}
+                            {current.status === 'failed' && (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/10 text-red-600">Failed</span>
+                            )}
+                            {isExpired && current.status === 'completed' && (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Expired</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+              
               {/* Assessment History */}
               {assessmentHistory.length > 1 && (
                 <div className="pt-4 border-t border-border mt-4">
@@ -1369,6 +1409,37 @@ export default function Dashboard() {
               )}
             </div>
             
+            {/* Mobile Current Assessment Info */}
+            {assessmentHistory.length >= 1 && !showHistory && (
+              <div className="lg:hidden mb-4 bg-card rounded-xl border border-border p-3">
+                {assessmentHistory.find(a => a.id === assessmentId) && (() => {
+                  const current = assessmentHistory.find(a => a.id === assessmentId)!;
+                  const date = new Date(current.created_at);
+                  const isExpired = current.expires_at && new Date(current.expires_at) < new Date();
+                  return (
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-foreground">{date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                      </div>
+                      {current.status === 'completed' && !isExpired && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-600">Completed</span>
+                      )}
+                      {current.status === 'processing' && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-600">Processing</span>
+                      )}
+                      {current.status === 'failed' && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/10 text-red-600">Failed</span>
+                      )}
+                      {isExpired && current.status === 'completed' && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Expired</span>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
             {/* Mobile History Dropdown */}
             {showHistory && assessmentHistory.length > 1 && (
               <div className="lg:hidden mb-4 bg-card rounded-xl border border-border p-4">
