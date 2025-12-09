@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
@@ -9,7 +10,6 @@ const corsHeaders = {
 
 interface EmailRequest {
   assessmentId: string;
-  userEmail: string;
   userName: string;
 }
 
@@ -19,11 +19,45 @@ serve(async (req) => {
   }
 
   try {
-    const { assessmentId, userEmail, userName }: EmailRequest = await req.json();
-
-    if (!assessmentId || !userEmail) {
+    // Get authorization header and verify user
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields" }),
+        JSON.stringify({ error: "Missing authorization header" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Create Supabase client to verify user and get their email
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      console.error("Auth error:", userError);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Get the authenticated user's email - this is the ONLY email we'll send to
+    const userEmail = user.email;
+    if (!userEmail) {
+      return new Response(
+        JSON.stringify({ error: "User email not found" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { assessmentId, userName }: EmailRequest = await req.json();
+
+    if (!assessmentId) {
+      return new Response(
+        JSON.stringify({ error: "Missing assessment ID" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
