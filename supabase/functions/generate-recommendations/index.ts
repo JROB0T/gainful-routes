@@ -389,6 +389,8 @@ GOALS:
 
     const systemPrompt = `You are an expert career advisor AI for CareerMovr, a U.S.-focused platform. Generate comprehensive, personalized career recommendations across FOUR career tracks based on the user's profile and pre-calculated career track scores.
 
+IMPORTANT: Use gender-neutral language throughout. Address the user as "you" and "your" - never use gendered pronouns (he/she/him/her/his/hers).
+
 CAREER FAMILIES TO CONSIDER:
 
 1. TECHNICAL CAREERS (Data, Product, Engineering, Analytics, PM, IT):
@@ -513,7 +515,7 @@ Based on this profile, generate a JSON response with this EXACT structure:
     "best_long_term_bets": [
       { "opportunity": "Long-term opportunity", "why": "Why it's a good bet", "potential": "Growth potential" }
     ],
-    "encouragement_summary": "A personalized, encouraging summary paragraph for the user."
+    "encouragement_summary": "A personalized, encouraging summary paragraph for the user. Use 'you' and 'your' - avoid gendered pronouns."
   },
   "low_hanging_fruit": ["easiest option 1", "easiest option 2"],
   "profile_summary": {

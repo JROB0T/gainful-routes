@@ -113,12 +113,16 @@ export function Step5Constraints({ data, updateData, onNext, onBack }: Step5Cons
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <Heart className="w-5 h-5 text-primary" />
-          <Label className="text-base font-semibold">Caregiving responsibilities</Label>
+          <Label className="text-base font-semibold">Do you have caregiving responsibilities?</Label>
         </div>
+        <p className="text-sm text-muted-foreground -mt-2">
+          This includes caring for children, elderly parents, family members with disabilities, or other dependents 
+          that may affect your availability or work schedule flexibility.
+        </p>
         
         <div className="flex gap-3">
           <button
-            onClick={() => updateData({ hasCaregiver: false })}
+            onClick={() => updateData({ hasCaregiver: false, caregiverDetails: "" })}
             className={cn(
               "px-6 py-3 rounded-xl border transition-all",
               !data.hasCaregiver
@@ -145,7 +149,7 @@ export function Step5Constraints({ data, updateData, onNext, onBack }: Step5Cons
           <Textarea
             value={data.caregiverDetails}
             onChange={(e) => updateData({ caregiverDetails: e.target.value })}
-            placeholder="Tell us more (optional)..."
+            placeholder="Optional: Share any details that might affect your schedule (e.g., school hours, evening availability, need for flexibility...)"
             rows={2}
           />
         )}
