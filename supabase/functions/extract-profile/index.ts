@@ -174,7 +174,7 @@ If information is sparse, make reasonable inferences based on available context.
                   physical_assets: {
                     type: "array",
                     items: { type: "string" },
-                    description: "Equipment, property, vehicles, tools they might own"
+                    description: "Equipment, property, vehicles, tools mentioned or likely owned"
                   },
                   network_strength: {
                     type: "string",
@@ -183,7 +183,7 @@ If information is sparse, make reasonable inferences based on available context.
                   industry_connections: {
                     type: "array",
                     items: { type: "string" },
-                    description: "Industries where they likely have contacts"
+                    description: "Industries where the person likely has contacts"
                   }
                 },
                 required: ["digital_assets", "physical_assets", "network_strength", "industry_connections"]
@@ -202,7 +202,7 @@ If information is sparse, make reasonable inferences based on available context.
                   industries: {
                     type: "array",
                     items: { type: "string" },
-                    description: "Industries they have experience in"
+                    description: "Industries the person has experience in"
                   },
                   geographic_flexibility: {
                     type: "string",
