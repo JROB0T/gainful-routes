@@ -48,26 +48,30 @@ serve(async (req) => {
     const now = new Date().toISOString();
     const { data: assessments, error: assessmentError } = await supabaseClient
       .from('assessment_results')
-      .select('id, expires_at, run_count, created_at')
+      .select('id, expires_at, status, created_at')
       .eq('user_id', user.id)
       .gte('expires_at', now)
-      .order('created_at', { ascending: false })
-      .limit(1);
+      .order('created_at', { ascending: false });
 
     if (!assessmentError && assessments && assessments.length > 0) {
+      // Count only completed assessments for the run count (failed ones don't count)
+      const completedRuns = assessments.filter((a: any) => a.status === 'completed').length;
       const latestAssessment = assessments[0];
-      logStep("Found valid assessment in database", { 
-        assessmentId: latestAssessment.id,
-        expiresAt: latestAssessment.expires_at,
-        runCount: latestAssessment.run_count
+      
+      logStep("Found assessments in database", { 
+        totalAssessments: assessments.length,
+        completedRuns,
+        latestId: latestAssessment.id,
+        latestStatus: latestAssessment.status,
+        expiresAt: latestAssessment.expires_at
       });
 
       // User has a valid non-expired assessment - they've already paid
       return new Response(JSON.stringify({ 
         hasPaid: true,
         expiryDate: latestAssessment.expires_at,
-        runsUsed: latestAssessment.run_count,
-        runsRemaining: Math.max(0, 3 - latestAssessment.run_count),
+        runsUsed: completedRuns,
+        runsRemaining: Math.max(0, 3 - completedRuns),
         source: 'database'
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

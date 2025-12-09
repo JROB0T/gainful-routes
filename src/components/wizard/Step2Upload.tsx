@@ -82,6 +82,14 @@ export function Step2Upload({ data, updateData, onBack, onAutoFill, isAnalyzing 
       </div>
 
       <div className="space-y-5">
+        {/* Importance notice */}
+        <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+          <p className="text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">Tip:</span> For the most accurate and personalized career recommendations, 
+            provide your resume or LinkedIn profile. Without these, your assessment will be based only on questionnaire answers and may be less tailored.
+          </p>
+        </div>
+
         {/* File upload */}
         <div className="space-y-2">
           <Label className="flex items-center gap-2">
@@ -218,18 +226,18 @@ export function Step2Upload({ data, updateData, onBack, onAutoFill, isAnalyzing 
           size="lg"
           onClick={onAutoFill}
           disabled={!hasContent || isAnalyzing}
-          className="group"
+          className="group whitespace-nowrap"
         >
           {isAnalyzing ? (
-            <span className="flex items-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span className="hidden sm:inline">Analyzing your profile...</span>
+            <span className="flex items-center gap-2 whitespace-nowrap">
+              <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
+              <span className="hidden sm:inline">Analyzing...</span>
               <span className="sm:hidden">Analyzing...</span>
             </span>
           ) : (
             <>
-              <Sparkles className="w-4 h-4" />
-              Auto-fill My Profile
+              <Sparkles className="w-4 h-4 flex-shrink-0" />
+              <span className="whitespace-nowrap">Auto-fill Profile</span>
             </>
           )}
         </Button>

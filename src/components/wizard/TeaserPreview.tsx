@@ -162,7 +162,7 @@ export function TeaserPreview({ analysis, onBack, isLoggedIn }: TeaserPreviewPro
           <Button
             variant="hero"
             size="xl"
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto whitespace-nowrap"
             onClick={handlePayment}
             disabled={isProcessingPayment}
           >
@@ -172,14 +172,14 @@ export function TeaserPreview({ analysis, onBack, isLoggedIn }: TeaserPreviewPro
                 Processing...
               </>
             ) : isLoggedIn ? (
-              "Unlock Now — $10 + tax"
+              "Unlock Now — $10"
             ) : (
-              "Sign Up to Unlock — $10 + tax"
+              "Sign Up to Unlock — $10"
             )}
           </Button>
 
           <p className="text-xs text-muted-foreground mt-4">
-            Secure payment via Stripe • 30-day access
+            Secure payment via Stripe • 30-day access • Plus applicable tax
           </p>
         </div>
       </div>
