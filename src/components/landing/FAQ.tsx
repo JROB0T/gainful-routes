@@ -9,7 +9,7 @@ const faqs = [
   {
     question: "How long does the assessment take?",
     answer:
-      "The assessment takes about 3-5 minutes to complete. If you upload your resume, we auto-fill much of your profile, making it even faster.",
+      "The assessment takes about 3-5 minutes to complete. You can paste your resume or describe your experience, and we'll auto-fill much of your profile, making it even faster.",
   },
   {
     question: "Are the results actually personalized?",

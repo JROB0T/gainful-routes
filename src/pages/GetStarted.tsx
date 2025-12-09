@@ -26,10 +26,7 @@ export type WizardData = {
   state: string;
   city: string;
   situation: string;
-  // Step 2
-  linkedinUrl: string;
-  twitterUrl: string;
-  portfolioUrl: string;
+  // Step 2 - Professional Experience
   resumeText: string;
   // Step 3 - Skills
   skills: string[];
@@ -209,10 +206,6 @@ const generateTestData = (): Partial<WizardData> => {
     state: profile.state,
     city: profile.city,
     situation: pick(situations),
-    // Keep URLs empty as requested
-    linkedinUrl: "",
-    twitterUrl: "",
-    portfolioUrl: "",
     // Include resume text from profile
     resumeText: profile.resumeText,
     // Fill the rest
@@ -267,9 +260,6 @@ const initialData: WizardData = {
   state: "",
   city: "",
   situation: "",
-  linkedinUrl: "",
-  twitterUrl: "",
-  portfolioUrl: "",
   resumeText: "",
   skills: [],
   interests: [],
@@ -480,8 +470,8 @@ export default function GetStarted() {
   };
 
   const handleAutoFill = async () => {
-    if (!data.resumeText && !data.linkedinUrl) {
-      toast.error("Please provide a resume or LinkedIn URL first");
+    if (!data.resumeText || data.resumeText.trim().length < 50) {
+      toast.error("Please provide more detail about your professional experience (at least 50 characters)");
       return;
     }
 
@@ -500,9 +490,6 @@ export default function GetStarted() {
         },
         body: JSON.stringify({
           resumeText: data.resumeText,
-          linkedinUrl: data.linkedinUrl,
-          twitterUrl: data.twitterUrl,
-          portfolioUrl: data.portfolioUrl,
         }),
         signal: controller.signal,
       });
