@@ -17,9 +17,11 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Use service role key to access assessment_results table
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    { auth: { persistSession: false } }
   );
 
   try {
@@ -29,11 +31,53 @@ serve(async (req) => {
     if (!authHeader) throw new Error("No authorization header provided");
 
     const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
+    
+    // Create a separate client with anon key for auth
+    const authClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    );
+    
+    const { data } = await authClient.auth.getUser(token);
     const user = data.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
+    // FIRST: Check if user has a valid (non-expired) assessment in the database
+    // This means they already paid at some point
+    const now = new Date().toISOString();
+    const { data: assessments, error: assessmentError } = await supabaseClient
+      .from('assessment_results')
+      .select('id, expires_at, run_count, created_at')
+      .eq('user_id', user.id)
+      .gte('expires_at', now)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (!assessmentError && assessments && assessments.length > 0) {
+      const latestAssessment = assessments[0];
+      logStep("Found valid assessment in database", { 
+        assessmentId: latestAssessment.id,
+        expiresAt: latestAssessment.expires_at,
+        runCount: latestAssessment.run_count
+      });
+
+      // User has a valid non-expired assessment - they've already paid
+      return new Response(JSON.stringify({ 
+        hasPaid: true,
+        expiryDate: latestAssessment.expires_at,
+        runsUsed: latestAssessment.run_count,
+        runsRemaining: Math.max(0, 3 - latestAssessment.run_count),
+        source: 'database'
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    logStep("No valid assessment found in database, checking Stripe");
+
+    // SECOND: Fall back to checking Stripe for payment records
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
 
@@ -45,7 +89,7 @@ serve(async (req) => {
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     
     if (customers.data.length === 0) {
-      logStep("No customer found", { email: user.email });
+      logStep("No customer found in Stripe", { email: user.email });
       return new Response(JSON.stringify({ hasPaid: false }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
@@ -53,7 +97,7 @@ serve(async (req) => {
     }
 
     const customerId = customers.data[0].id;
-    logStep("Found customer", { customerId });
+    logStep("Found Stripe customer", { customerId });
 
     // Check for successful payment intents for the CareerMovr Assessment product
     const paymentIntents = await stripe.paymentIntents.list({
@@ -68,15 +112,15 @@ serve(async (req) => {
     );
 
     if (successfulPayment) {
-      logStep("Found successful payment", { paymentId: successfulPayment.id });
+      logStep("Found successful payment intent", { paymentId: successfulPayment.id });
       
       // Check if payment is within 30-day access window
       const paymentDate = new Date(successfulPayment.created * 1000);
       const expiryDate = new Date(paymentDate);
       expiryDate.setDate(expiryDate.getDate() + 30);
-      const now = new Date();
+      const nowDate = new Date();
       
-      const isValid = now < expiryDate;
+      const isValid = nowDate < expiryDate;
       logStep("Payment validity check", { 
         paymentDate: paymentDate.toISOString(), 
         expiryDate: expiryDate.toISOString(),
@@ -87,6 +131,7 @@ serve(async (req) => {
         hasPaid: isValid,
         paymentDate: paymentDate.toISOString(),
         expiryDate: expiryDate.toISOString(),
+        source: 'stripe_payment_intent'
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
@@ -110,14 +155,42 @@ serve(async (req) => {
       const paymentDate = new Date(completedSession.created * 1000);
       const expiryDate = new Date(paymentDate);
       expiryDate.setDate(expiryDate.getDate() + 30);
-      const now = new Date();
+      const nowDate = new Date();
       
-      const isValid = now < expiryDate;
+      const isValid = nowDate < expiryDate;
 
       return new Response(JSON.stringify({ 
         hasPaid: isValid,
         paymentDate: paymentDate.toISOString(),
         expiryDate: expiryDate.toISOString(),
+        source: 'stripe_checkout'
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // Also check for any successful checkout session (without metadata check)
+    // This handles cases where the payment was made but metadata wasn't set
+    const anyPaidSession = sessions.data.find(
+      (s: { payment_status: string }) => s.payment_status === "paid"
+    );
+
+    if (anyPaidSession) {
+      logStep("Found paid checkout session (without product metadata)", { sessionId: anyPaidSession.id });
+      
+      const paymentDate = new Date(anyPaidSession.created * 1000);
+      const expiryDate = new Date(paymentDate);
+      expiryDate.setDate(expiryDate.getDate() + 30);
+      const nowDate = new Date();
+      
+      const isValid = nowDate < expiryDate;
+
+      return new Response(JSON.stringify({ 
+        hasPaid: isValid,
+        paymentDate: paymentDate.toISOString(),
+        expiryDate: expiryDate.toISOString(),
+        source: 'stripe_checkout_any'
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
