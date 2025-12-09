@@ -5,7 +5,7 @@ const steps = [
     icon: ClipboardCheck,
     title: "Take a Guided Assessment",
     description:
-      "Answer a few questions about your skills, experience, and goals. Upload your resume to auto-fill your profile.",
+      "Answer a few questions about your skills, experience, and goals. Paste your resume or describe your background to auto-fill your profile.",
     number: "01",
   },
   {

@@ -15,7 +15,7 @@ const premiumFeatures = [
   "Complete skill gaps analysis",
   "30-day personalized roadmap",
   "Role match compatibility scores",
-  "Resume alignment tips",
+  "Profile-based recommendations",
   "AI-proof career suggestions",
   "AI-centric opportunities",
   "Up to 3 re-runs",
