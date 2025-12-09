@@ -1,18 +1,24 @@
 import { Button } from "@/components/ui/button";
-import { Check, Sparkles } from "lucide-react";
+import { Check, X, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-const includedFeatures = [
-  "Full AI-powered assessment",
-  "10-15 tailored career & income paths",
-  "AI-centric opportunity recommendations",
-  "AI-resistant career paths",
-  "Complete 30-day Success Plan",
-  "Skills & strengths analysis",
-  "Income potential estimates",
-  "Week-by-week action items",
-  "Up to 3 profile re-runs",
-  "30-day dashboard access",
+const freeFeatures = [
+  { text: "Start your profile", included: true },
+  { text: "Begin the assessment", included: true },
+  { text: "Partial insights preview", included: true },
+  { text: "Full career report", included: false },
+  { text: "30-day Success Plan", included: false },
+];
+
+const premiumFeatures = [
+  "Full career report with 10-15 paths",
+  "Complete skill gaps analysis",
+  "30-day personalized roadmap",
+  "Role match compatibility scores",
+  "Resume alignment tips",
+  "AI-proof career suggestions",
+  "AI-centric opportunities",
+  "Up to 3 re-runs",
   "Export & print your plan",
 ];
 
@@ -20,19 +26,68 @@ export function Pricing() {
   const navigate = useNavigate();
 
   return (
-    <section className="py-24 bg-background">
-      <div className="container px-4 md:px-6">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold mb-4">
-            Simple, <span className="text-gradient-primary">Transparent</span> Pricing
+    <section id="pricing" className="py-12 md:py-24 bg-background">
+      <div className="container px-4 md:px-6 max-w-7xl mx-auto">
+        <div className="text-center mb-12 md:mb-16">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-display font-bold mb-4">
+            Start Free —{" "}
+            <span className="text-gradient-primary">Upgrade Anytime</span>
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            One payment. Full access. No subscriptions.
+          <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
+            Try before you commit. No credit card required to start.
           </p>
         </div>
 
-        <div className="max-w-lg mx-auto">
-          <div className="relative p-8 md:p-10 rounded-3xl bg-card border-2 border-primary/20 shadow-xl hover:shadow-glow transition-shadow duration-300">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+          {/* Free Plan */}
+          <div className="p-6 md:p-8 rounded-2xl bg-card border border-border">
+            <h3 className="text-xl font-display font-bold mb-2 text-foreground">
+              Free
+            </h3>
+            <div className="flex items-baseline gap-1 mb-6">
+              <span className="text-4xl font-display font-bold text-foreground">
+                $0
+              </span>
+              <span className="text-muted-foreground">to start</span>
+            </div>
+
+            <ul className="space-y-3 mb-8">
+              {freeFeatures.map((feature, index) => (
+                <li key={index} className="flex items-center gap-3">
+                  {feature.included ? (
+                    <div className="flex-shrink-0 w-5 h-5 rounded-full bg-success/20 flex items-center justify-center">
+                      <Check className="w-3 h-3 text-success" />
+                    </div>
+                  ) : (
+                    <div className="flex-shrink-0 w-5 h-5 rounded-full bg-muted flex items-center justify-center">
+                      <X className="w-3 h-3 text-muted-foreground" />
+                    </div>
+                  )}
+                  <span
+                    className={
+                      feature.included
+                        ? "text-foreground"
+                        : "text-muted-foreground"
+                    }
+                  >
+                    {feature.text}
+                  </span>
+                </li>
+              ))}
+            </ul>
+
+            <Button
+              variant="outline"
+              size="lg"
+              className="w-full min-h-[48px]"
+              onClick={() => navigate("/get-started")}
+            >
+              Start Free
+            </Button>
+          </div>
+
+          {/* Premium Plan */}
+          <div className="relative p-6 md:p-8 rounded-2xl bg-card border-2 border-primary/30 shadow-lg">
             {/* Popular badge */}
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-accent text-accent-foreground text-sm font-semibold shadow-lg">
@@ -41,41 +96,52 @@ export function Pricing() {
               </div>
             </div>
 
-            {/* Price */}
-            <div className="text-center mb-8 pt-4">
-              <div className="flex items-baseline justify-center gap-2 mb-2">
-                <span className="text-5xl md:text-6xl font-display font-bold text-foreground">$10</span>
-                <span className="text-muted-foreground font-medium">one-time</span>
-              </div>
-              <p className="text-muted-foreground">30-day full access</p>
+            <h3 className="text-xl font-display font-bold mb-2 text-foreground mt-2">
+              Premium
+            </h3>
+            <div className="flex items-baseline gap-1 mb-6">
+              <span className="text-4xl font-display font-bold text-foreground">
+                $10
+              </span>
+              <span className="text-muted-foreground">one-time</span>
             </div>
 
-            {/* Features list */}
-            <ul className="space-y-4 mb-8">
-              {includedFeatures.map((feature, index) => (
-                <li key={index} className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-5 h-5 rounded-full bg-success/20 text-success flex items-center justify-center mt-0.5">
-                    <Check className="w-3 h-3" />
+            <ul className="space-y-3 mb-8">
+              {premiumFeatures.map((feature, index) => (
+                <li key={index} className="flex items-center gap-3">
+                  <div className="flex-shrink-0 w-5 h-5 rounded-full bg-success/20 flex items-center justify-center">
+                    <Check className="w-3 h-3 text-success" />
                   </div>
                   <span className="text-foreground">{feature}</span>
                 </li>
               ))}
             </ul>
 
-            {/* CTA */}
-            <Button 
-              variant="hero" 
-              size="xl" 
-              className="w-full"
+            <Button
+              variant="hero"
+              size="lg"
+              className="w-full min-h-[48px]"
               onClick={() => navigate("/get-started")}
             >
-              Get Started Now
+              Get Full Access
             </Button>
 
-            <p className="text-center text-sm text-muted-foreground mt-4">
-              Secure one-time payment via Stripe. No subscription.
+            <p className="text-center text-xs text-muted-foreground mt-4">
+              30-day access • Secure payment via Stripe
             </p>
           </div>
+        </div>
+
+        {/* Repeated CTA */}
+        <div className="text-center mt-12">
+          <Button
+            variant="gradient"
+            size="lg"
+            className="min-h-[48px]"
+            onClick={() => navigate("/get-started")}
+          >
+            Take the Free Career Assessment
+          </Button>
         </div>
       </div>
     </section>

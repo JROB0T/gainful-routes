@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Compass, Menu, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -6,52 +6,67 @@ import { useNavigate } from "react-router-dom";
 export function Navbar() {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
-  const scrollToSection = (selector: string) => {
-    document.querySelector(selector)?.scrollIntoView({ behavior: 'smooth' });
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToSection = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
     setMobileMenuOpen(false);
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
-      <div className="container px-4 md:px-6">
-        <div className="flex items-center justify-between h-14 md:h-16">
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled
+          ? "bg-background/95 backdrop-blur-lg border-b border-border shadow-sm"
+          : "bg-transparent"
+      }`}
+    >
+      <div className="container px-4 md:px-6 max-w-7xl mx-auto">
+        <div className="flex items-center justify-between h-16 md:h-18">
           {/* Logo */}
           <a href="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 md:w-9 md:h-9 rounded-lg bg-gradient-primary flex items-center justify-center group-hover:scale-105 transition-transform">
-              <Compass className="w-4 h-4 md:w-5 md:h-5 text-primary-foreground" />
+            <div className="w-9 h-9 rounded-xl bg-gradient-primary flex items-center justify-center group-hover:scale-105 transition-transform">
+              <Compass className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="font-display font-bold text-lg md:text-xl text-foreground">CareerMovr</span>
+            <span className="font-display font-bold text-xl text-foreground">
+              CareerMovr
+            </span>
           </a>
 
           {/* Desktop nav links */}
           <nav className="hidden md:flex items-center gap-8">
-            <a 
-              href="#how-it-works" 
+            <button
+              onClick={() => scrollToSection("how-it-works")}
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               How It Works
-            </a>
-            <a 
-              href="#features" 
+            </button>
+            <button
+              onClick={() => scrollToSection("what-you-get")}
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-              onClick={(e) => {
-                e.preventDefault();
-                scrollToSection('.py-24.bg-secondary\\/30');
-              }}
             >
               Features
-            </a>
-            <a 
-              href="#pricing" 
+            </button>
+            <button
+              onClick={() => scrollToSection("pricing")}
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-              onClick={(e) => {
-                e.preventDefault();
-                scrollToSection('.max-w-lg.mx-auto');
-              }}
             >
               Pricing
-            </a>
+            </button>
+            <button
+              onClick={() => scrollToSection("faq")}
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              FAQ
+            </button>
           </nav>
 
           {/* Desktop auth buttons */}
@@ -60,27 +75,31 @@ export function Navbar() {
               Sign In
             </Button>
             <Button variant="gradient" onClick={() => navigate("/get-started")}>
-              Get Started
+              Take Free Assessment
             </Button>
           </div>
 
           {/* Mobile: CTA + Menu button */}
           <div className="flex md:hidden items-center gap-2">
-            <Button 
-              size="sm" 
-              variant="gradient" 
+            <Button
+              size="sm"
+              variant="gradient"
               onClick={() => navigate("/get-started")}
-              className="text-xs px-3 h-8"
+              className="text-xs px-3 h-9"
             >
-              Get Started
+              Free Assessment
             </Button>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8"
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
-              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              {mobileMenuOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
             </Button>
           </div>
         </div>
@@ -88,42 +107,36 @@ export function Navbar() {
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-border/50 bg-background/95 backdrop-blur-lg">
-          <nav className="container px-4 py-4 flex flex-col gap-3">
-            <a 
-              href="#how-it-works" 
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
-              onClick={(e) => {
-                e.preventDefault();
-                scrollToSection('#how-it-works');
-              }}
+        <div className="md:hidden border-t border-border bg-background/98 backdrop-blur-lg">
+          <nav className="container px-4 py-4 flex flex-col gap-1">
+            <button
+              onClick={() => scrollToSection("how-it-works")}
+              className="text-left text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-3 px-2 rounded-lg hover:bg-secondary"
             >
               How It Works
-            </a>
-            <a 
-              href="#features" 
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
-              onClick={(e) => {
-                e.preventDefault();
-                scrollToSection('.py-24.bg-secondary\\/30');
-              }}
+            </button>
+            <button
+              onClick={() => scrollToSection("what-you-get")}
+              className="text-left text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-3 px-2 rounded-lg hover:bg-secondary"
             >
               Features
-            </a>
-            <a 
-              href="#pricing" 
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
-              onClick={(e) => {
-                e.preventDefault();
-                scrollToSection('.max-w-lg.mx-auto');
-              }}
+            </button>
+            <button
+              onClick={() => scrollToSection("pricing")}
+              className="text-left text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-3 px-2 rounded-lg hover:bg-secondary"
             >
               Pricing
-            </a>
-            <div className="border-t border-border/50 pt-3 mt-1">
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start" 
+            </button>
+            <button
+              onClick={() => scrollToSection("faq")}
+              className="text-left text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-3 px-2 rounded-lg hover:bg-secondary"
+            >
+              FAQ
+            </button>
+            <div className="border-t border-border pt-3 mt-2">
+              <Button
+                variant="ghost"
+                className="w-full justify-start h-11"
                 onClick={() => {
                   navigate("/auth");
                   setMobileMenuOpen(false);
