@@ -356,317 +356,142 @@ GOALS:
 CAREER FAMILIES TO CONSIDER:
 
 1. TECHNICAL CAREERS (Data, Product, Engineering, Analytics, PM, IT):
-   - Data Analyst, Data Scientist
-   - Product Manager (Tech)
-   - Software/Web Developer
-   - IT Support/Systems Admin
-   - Cybersecurity Analyst
-   - Business Intelligence Analyst
-   - QA Engineer
-   - Technical Writer
+   - Data Analyst, Data Scientist, Product Manager (Tech), Software/Web Developer, IT Support/Systems Admin, Cybersecurity Analyst, Business Intelligence Analyst, QA Engineer, Technical Writer
 
 2. WHITE-COLLAR NON-TECHNICAL CAREERS (Operations, HR, Sales, Management):
-   - Operations Manager/Coordinator
-   - Customer Success Manager
-   - HR/People Ops Specialist
-   - Sales Representative/Account Executive
-   - Marketing Coordinator/Manager
-   - Project Manager (Non-tech)
-   - Business Analyst
-   - Administrative Manager
-   - Strategy/Business Development
+   - Operations Manager/Coordinator, Customer Success Manager, HR/People Ops Specialist, Sales Representative/Account Executive, Marketing Coordinator/Manager, Project Manager (Non-tech), Business Analyst, Administrative Manager, Strategy/Business Development
 
 3. BLUE-COLLAR / SKILLED TRADES:
-   - Electrician
-   - HVAC Technician
-   - Plumber
-   - Mechanic/Automotive Tech
-   - Construction/Carpentry
-   - Welding
-   - Facilities Maintenance
-   - Logistics/Warehouse Operations
-   - Field Service Technician
-   - Heavy Equipment Operator
+   - Electrician, HVAC Technician, Plumber, Mechanic/Automotive Tech, Construction/Carpentry, Welding, Facilities Maintenance, Logistics/Warehouse Operations, Field Service Technician, Heavy Equipment Operator
 
 4. HYBRID TECHNICAL-TRADE CAREERS:
-   - Industrial Technician
-   - Robotics Maintenance Tech
-   - CNC Machinist/Programmer
-   - IT Field Technician
-   - Manufacturing Systems Tech
-   - Automation Technician
-   - Medical Equipment Tech
-   - Elevator Technician
-   - Wind Turbine Technician
+   - Industrial Technician, Robotics Maintenance Tech, CNC Machinist/Programmer, IT Field Technician, Manufacturing Systems Tech, Automation Technician, Medical Equipment Tech, Elevator Technician, Wind Turbine Technician
 
-OUTPUT REQUIREMENTS:
-1. CAREER SCORECARD: Provide match percentages and explanations for each career family based on user inputs
-2. TOP CAREER MATCHES (10-15): Specific roles from ALL relevant career families, sorted by match percentage
-3. AI-CENTRIC OPPORTUNITIES (3-6): Roles leveraging AI tools
-4. AI-PROOF OPPORTUNITIES (3-6): Automation-resistant roles
-5. ALTERNATIVE PATHS (3-6): Ways to leverage resources for income
-6. ALTERNATIVE OPTIONS (3-6): Unconventional career pivots
-7. COMPLETE SUCCESS PLAN
+You MUST return valid JSON with exactly this structure. Be SPECIFIC and reference the user's actual skills, preferences, and constraints.`;
 
-For the CAREER SCORECARD, provide:
-- match_percentage: 0-100 based on user's profile alignment
-- explanation: 2-3 sentences explaining the match
-- top_roles: 3-5 specific roles from this family that fit best
-- strengths_for_track: What makes them suited for this track
-- gaps_for_track: What they'd need to develop
+    const userPrompt = `${userContext}
 
-For EACH career recommendation include:
-- title: Clear, specific title
-- career_family: "technical", "white-collar", "blue-collar", or "hybrid"
-- match_percentage: 0-100 showing fit strength
-- type: career, consulting, freelance, rental, side-hustle, business, creator, apprenticeship
-- reason_fit: 3-5 bullet points referencing specific user inputs
-- difficulty: L (low), M (medium), H (high)
-- time_commitment: e.g., "5-10 hrs/week" or "full-time"
-- ramp_time: Time to first income
-- income_potential: L ($0-2k/mo), M ($2-5k/mo), H ($5k+/mo)
-- required_training: Any certifications or training needed
-- first_3_steps: Three specific, actionable steps
+Based on this profile, generate a JSON response with this EXACT structure:
 
-Be SPECIFIC. Reference the user's actual skills, preferences, and constraints. Use the pre-calculated career track scores to weight recommendations appropriately.`;
+{
+  "career_scorecard": {
+    "technical": { "match_percentage": 0-100, "explanation": "2-3 sentences", "top_roles": ["role1", "role2", "role3"], "strengths_for_track": ["strength1", "strength2"], "gaps_for_track": ["gap1", "gap2"] },
+    "white_collar": { "match_percentage": 0-100, "explanation": "2-3 sentences", "top_roles": ["role1", "role2", "role3"], "strengths_for_track": ["strength1", "strength2"], "gaps_for_track": ["gap1", "gap2"] },
+    "blue_collar": { "match_percentage": 0-100, "explanation": "2-3 sentences", "top_roles": ["role1", "role2", "role3"], "strengths_for_track": ["strength1", "strength2"], "gaps_for_track": ["gap1", "gap2"] },
+    "hybrid": { "match_percentage": 0-100, "explanation": "2-3 sentences", "top_roles": ["role1", "role2", "role3"], "strengths_for_track": ["strength1", "strength2"], "gaps_for_track": ["gap1", "gap2"] }
+  },
+  "recommendations": [
+    {
+      "title": "Job Title",
+      "career_family": "technical|white-collar|blue-collar|hybrid",
+      "match_percentage": 0-100,
+      "type": "career|consulting|freelance|rental|side-hustle|business|creator|apprenticeship",
+      "reason_fit": ["bullet1", "bullet2", "bullet3"],
+      "difficulty": "L|M|H",
+      "time_commitment": "e.g. 40 hrs/week",
+      "ramp_time": "e.g. 3 months",
+      "income_potential": "L|M|H",
+      "required_training": "description or None required",
+      "first_3_steps": ["step1", "step2", "step3"]
+    }
+  ],
+  "ai_centric_opportunities": [
+    {
+      "title": "AI Role Title",
+      "career_family": "technical|white-collar|blue-collar|hybrid",
+      "match_percentage": 0-100,
+      "type": "career|consulting|freelance",
+      "reason_fit": ["bullet1", "bullet2"],
+      "skill_bridge": "Skills to develop",
+      "entry_points": ["entry1", "entry2"],
+      "competitive_edge": "Your unique advantage",
+      "difficulty": "L|M|H",
+      "time_commitment": "e.g. 20 hrs/week",
+      "ramp_time": "e.g. 2 months",
+      "income_potential": "L|M|H",
+      "first_3_steps": ["step1", "step2", "step3"]
+    }
+  ],
+  "ai_proof_opportunities": [
+    {
+      "title": "Automation-Resistant Role",
+      "career_family": "technical|white-collar|blue-collar|hybrid",
+      "match_percentage": 0-100,
+      "type": "career|consulting|freelance",
+      "reason_fit": ["bullet1", "bullet2"],
+      "human_advantage": "Why this cannot be automated",
+      "monetization_path": "How to earn income",
+      "difficulty": "L|M|H",
+      "time_commitment": "e.g. full-time",
+      "ramp_time": "e.g. 6 months",
+      "income_potential": "L|M|H",
+      "first_3_steps": ["step1", "step2", "step3"]
+    }
+  ],
+  "alternative_paths": [
+    {
+      "title": "Alternative Income Path",
+      "type": "rental|passive-income|side-hustle|consulting|creator|freelance",
+      "reason_fit": ["bullet1", "bullet2"],
+      "resource_leveraged": "What existing resource this uses",
+      "effort_level": "Minimal|Part-time|Active",
+      "passive_potential": "Description of passive income potential",
+      "difficulty": "L|M|H",
+      "time_commitment": "e.g. 5 hrs/week",
+      "ramp_time": "e.g. 1 month",
+      "income_potential": "L|M|H",
+      "first_3_steps": ["step1", "step2", "step3"]
+    }
+  ],
+  "alternative_options": [
+    {
+      "title": "Unconventional Career Path",
+      "career_family": "technical|white-collar|blue-collar|hybrid",
+      "match_percentage": 0-100,
+      "type": "career|consulting|freelance|business|creator|apprenticeship",
+      "reason_fit": ["bullet1", "bullet2"],
+      "why_unconventional": "Why this is outside their experience",
+      "personality_match": "How personality aligns",
+      "transferable_strengths": ["strength1", "strength2"],
+      "realistic_entry": "How to realistically enter this field",
+      "difficulty": "L|M|H",
+      "time_commitment": "e.g. full-time",
+      "ramp_time": "e.g. 12 months",
+      "income_potential": "L|M|H",
+      "first_3_steps": ["step1", "step2", "step3"]
+    }
+  ],
+  "success_plan": {
+    "strengths": ["strength1", "strength2", "strength3", "strength4", "strength5"],
+    "skill_gaps": ["gap1", "gap2", "gap3"],
+    "fast_wins": ["win1", "win2", "win3", "win4", "win5"],
+    "thirty_day_plan": [
+      { "week": 1, "focus": "Focus area", "tasks": ["task1", "task2", "task3"] },
+      { "week": 2, "focus": "Focus area", "tasks": ["task1", "task2", "task3"] },
+      { "week": 3, "focus": "Focus area", "tasks": ["task1", "task2", "task3"] },
+      { "week": 4, "focus": "Focus area", "tasks": ["task1", "task2", "task3"] }
+    ],
+    "quickest_path_to_income": [
+      { "opportunity": "Fastest opportunity", "timeline": "e.g. 2 weeks", "steps": ["step1", "step2", "step3"] }
+    ],
+    "best_long_term_bets": [
+      { "opportunity": "Long-term opportunity", "why": "Why it's a good bet", "potential": "Growth potential" }
+    ],
+    "encouragement_summary": "A personalized, encouraging summary paragraph for the user."
+  },
+  "low_hanging_fruit": ["easiest option 1", "easiest option 2"],
+  "profile_summary": {
+    "headline": "A compelling one-liner about the user's profile",
+    "top_skills": ["skill1", "skill2", "skill3"],
+    "experience_level": "entry|mid|senior",
+    "best_fit_types": ["type1", "type2"],
+    "primary_career_track": "technical|white-collar|blue-collar|hybrid"
+  }
+}
 
-    const tools = [
-      {
-        type: "function",
-        function: {
-          name: "generate_career_recommendations",
-          description: "Generate comprehensive personalized career opportunities with career family scorecard",
-          parameters: {
-            type: "object",
-            properties: {
-              career_scorecard: {
-                type: "object",
-                description: "Match scores for each career family",
-                properties: {
-                  technical: {
-                    type: "object",
-                    properties: {
-                      match_percentage: { type: "number", description: "0-100 match score" },
-                      explanation: { type: "string" },
-                      top_roles: { type: "array", items: { type: "string" } },
-                      strengths_for_track: { type: "array", items: { type: "string" } },
-                      gaps_for_track: { type: "array", items: { type: "string" } }
-                    },
-                    required: ["match_percentage", "explanation", "top_roles", "strengths_for_track", "gaps_for_track"]
-                  },
-                  white_collar: {
-                    type: "object",
-                    properties: {
-                      match_percentage: { type: "number" },
-                      explanation: { type: "string" },
-                      top_roles: { type: "array", items: { type: "string" } },
-                      strengths_for_track: { type: "array", items: { type: "string" } },
-                      gaps_for_track: { type: "array", items: { type: "string" } }
-                    },
-                    required: ["match_percentage", "explanation", "top_roles", "strengths_for_track", "gaps_for_track"]
-                  },
-                  blue_collar: {
-                    type: "object",
-                    properties: {
-                      match_percentage: { type: "number" },
-                      explanation: { type: "string" },
-                      top_roles: { type: "array", items: { type: "string" } },
-                      strengths_for_track: { type: "array", items: { type: "string" } },
-                      gaps_for_track: { type: "array", items: { type: "string" } }
-                    },
-                    required: ["match_percentage", "explanation", "top_roles", "strengths_for_track", "gaps_for_track"]
-                  },
-                  hybrid: {
-                    type: "object",
-                    properties: {
-                      match_percentage: { type: "number" },
-                      explanation: { type: "string" },
-                      top_roles: { type: "array", items: { type: "string" } },
-                      strengths_for_track: { type: "array", items: { type: "string" } },
-                      gaps_for_track: { type: "array", items: { type: "string" } }
-                    },
-                    required: ["match_percentage", "explanation", "top_roles", "strengths_for_track", "gaps_for_track"]
-                  }
-                },
-                required: ["technical", "white_collar", "blue_collar", "hybrid"]
-              },
-              recommendations: {
-                type: "array",
-                description: "10-15 personalized career/income opportunities from all relevant career families",
-                items: {
-                  type: "object",
-                  properties: {
-                    title: { type: "string" },
-                    career_family: { type: "string", enum: ["technical", "white-collar", "blue-collar", "hybrid"] },
-                    match_percentage: { type: "number", description: "0-100 match score" },
-                    type: { type: "string", enum: ["career", "consulting", "freelance", "rental", "side-hustle", "business", "creator", "apprenticeship"] },
-                    reason_fit: { type: "array", items: { type: "string" }, description: "3-5 bullet points" },
-                    difficulty: { type: "string", enum: ["L", "M", "H"] },
-                    time_commitment: { type: "string" },
-                    ramp_time: { type: "string" },
-                    income_potential: { type: "string", enum: ["L", "M", "H"] },
-                    required_training: { type: "string", description: "Certifications or training needed, or 'None required'" },
-                    first_3_steps: { type: "array", items: { type: "string" } }
-                  },
-                  required: ["title", "career_family", "match_percentage", "type", "reason_fit", "difficulty", "time_commitment", "ramp_time", "income_potential", "required_training", "first_3_steps"]
-                }
-              },
-              ai_centric_opportunities: {
-                type: "array",
-                description: "3-6 AI-focused roles and opportunities",
-                items: {
-                  type: "object",
-                  properties: {
-                    title: { type: "string" },
-                    career_family: { type: "string", enum: ["technical", "white-collar", "blue-collar", "hybrid"] },
-                    match_percentage: { type: "number" },
-                    type: { type: "string" },
-                    reason_fit: { type: "array", items: { type: "string" } },
-                    skill_bridge: { type: "string", description: "Skills to develop" },
-                    entry_points: { type: "array", items: { type: "string" } },
-                    competitive_edge: { type: "string" },
-                    difficulty: { type: "string", enum: ["L", "M", "H"] },
-                    time_commitment: { type: "string" },
-                    ramp_time: { type: "string" },
-                    income_potential: { type: "string", enum: ["L", "M", "H"] },
-                    first_3_steps: { type: "array", items: { type: "string" } }
-                  },
-                  required: ["title", "career_family", "match_percentage", "type", "reason_fit", "skill_bridge", "entry_points", "competitive_edge", "difficulty", "time_commitment", "ramp_time", "income_potential", "first_3_steps"]
-                }
-              },
-              ai_proof_opportunities: {
-                type: "array",
-                description: "3-6 automation-resistant opportunities",
-                items: {
-                  type: "object",
-                  properties: {
-                    title: { type: "string" },
-                    career_family: { type: "string", enum: ["technical", "white-collar", "blue-collar", "hybrid"] },
-                    match_percentage: { type: "number" },
-                    type: { type: "string" },
-                    reason_fit: { type: "array", items: { type: "string" } },
-                    human_advantage: { type: "string", description: "Why this cannot be automated" },
-                    monetization_path: { type: "string" },
-                    difficulty: { type: "string", enum: ["L", "M", "H"] },
-                    time_commitment: { type: "string" },
-                    ramp_time: { type: "string" },
-                    income_potential: { type: "string", enum: ["L", "M", "H"] },
-                    first_3_steps: { type: "array", items: { type: "string" } }
-                  },
-                  required: ["title", "career_family", "match_percentage", "type", "reason_fit", "human_advantage", "monetization_path", "difficulty", "time_commitment", "ramp_time", "income_potential", "first_3_steps"]
-                }
-              },
-              alternative_paths: {
-                type: "array",
-                description: "3-6 alternative income paths leveraging user's resources",
-                items: {
-                  type: "object",
-                  properties: {
-                    title: { type: "string" },
-                    type: { type: "string", enum: ["rental", "passive-income", "side-hustle", "consulting", "creator", "freelance"] },
-                    reason_fit: { type: "array", items: { type: "string" } },
-                    resource_leveraged: { type: "string" },
-                    effort_level: { type: "string", enum: ["Minimal", "Part-time", "Active"] },
-                    passive_potential: { type: "string" },
-                    difficulty: { type: "string", enum: ["L", "M", "H"] },
-                    time_commitment: { type: "string" },
-                    ramp_time: { type: "string" },
-                    income_potential: { type: "string", enum: ["L", "M", "H"] },
-                    first_3_steps: { type: "array", items: { type: "string" } }
-                  },
-                  required: ["title", "type", "reason_fit", "resource_leveraged", "effort_level", "passive_potential", "difficulty", "time_commitment", "ramp_time", "income_potential", "first_3_steps"]
-                }
-              },
-              alternative_options: {
-                type: "array",
-                description: "3-6 unconventional career paths outside user's experience",
-                items: {
-                  type: "object",
-                  properties: {
-                    title: { type: "string" },
-                    career_family: { type: "string", enum: ["technical", "white-collar", "blue-collar", "hybrid"] },
-                    match_percentage: { type: "number" },
-                    type: { type: "string", enum: ["career", "consulting", "freelance", "business", "creator", "apprenticeship"] },
-                    reason_fit: { type: "array", items: { type: "string" } },
-                    why_unconventional: { type: "string" },
-                    personality_match: { type: "string" },
-                    transferable_strengths: { type: "array", items: { type: "string" } },
-                    realistic_entry: { type: "string" },
-                    difficulty: { type: "string", enum: ["L", "M", "H"] },
-                    time_commitment: { type: "string" },
-                    ramp_time: { type: "string" },
-                    income_potential: { type: "string", enum: ["L", "M", "H"] },
-                    first_3_steps: { type: "array", items: { type: "string" } }
-                  },
-                  required: ["title", "career_family", "match_percentage", "type", "reason_fit", "why_unconventional", "personality_match", "transferable_strengths", "realistic_entry", "difficulty", "time_commitment", "ramp_time", "income_potential", "first_3_steps"]
-                }
-              },
-              success_plan: {
-                type: "object",
-                properties: {
-                  strengths: { type: "array", items: { type: "string" }, description: "5-7 key strengths" },
-                  skill_gaps: { type: "array", items: { type: "string" }, description: "3-5 skills to develop" },
-                  fast_wins: { type: "array", items: { type: "string" }, description: "5-7 actions for this week" },
-                  thirty_day_plan: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        week: { type: "number" },
-                        focus: { type: "string" },
-                        tasks: { type: "array", items: { type: "string" } }
-                      },
-                      required: ["week", "focus", "tasks"]
-                    }
-                  },
-                  quickest_path_to_income: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        opportunity: { type: "string" },
-                        timeline: { type: "string" },
-                        steps: { type: "array", items: { type: "string" } }
-                      },
-                      required: ["opportunity", "timeline", "steps"]
-                    }
-                  },
-                  best_long_term_bets: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        opportunity: { type: "string" },
-                        why: { type: "string" },
-                        potential: { type: "string" }
-                      },
-                      required: ["opportunity", "why", "potential"]
-                    }
-                  },
-                  encouragement_summary: { type: "string" }
-                },
-                required: ["strengths", "skill_gaps", "fast_wins", "thirty_day_plan", "quickest_path_to_income", "best_long_term_bets", "encouragement_summary"]
-              },
-              low_hanging_fruit: { type: "array", items: { type: "string" }, description: "2-3 easiest opportunities" },
-              profile_summary: {
-                type: "object",
-                properties: {
-                  headline: { type: "string" },
-                  top_skills: { type: "array", items: { type: "string" } },
-                  experience_level: { type: "string" },
-                  best_fit_types: { type: "array", items: { type: "string" } },
-                  primary_career_track: { type: "string", enum: ["technical", "white-collar", "blue-collar", "hybrid"] }
-                },
-                required: ["headline", "top_skills", "experience_level", "best_fit_types", "primary_career_track"]
-              }
-            },
-            required: ["career_scorecard", "recommendations", "ai_centric_opportunities", "ai_proof_opportunities", "alternative_paths", "alternative_options", "success_plan", "low_hanging_fruit", "profile_summary"]
-          }
-        }
-      }
-    ];
+Generate 10-15 recommendations, 3-6 ai_centric_opportunities, 3-6 ai_proof_opportunities, 3-6 alternative_paths, and 3-6 alternative_options. Return ONLY the JSON, no markdown code blocks.`;
 
-    console.log("Calling AI for recommendations with career scorecard...");
+    console.log("Calling AI for recommendations (JSON mode)...");
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -678,10 +503,9 @@ Be SPECIFIC. Reference the user's actual skills, preferences, and constraints. U
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: userContext }
+          { role: "user", content: userPrompt }
         ],
-        tools,
-        tool_choice: { type: "function", function: { name: "generate_career_recommendations" } }
+        response_format: { type: "json_object" }
       }),
     });
 
@@ -708,33 +532,28 @@ Be SPECIFIC. Reference the user's actual skills, preferences, and constraints. U
     console.log("AI Response received, structure:", JSON.stringify({
       hasChoices: !!aiResult.choices,
       choicesLength: aiResult.choices?.length,
-      messageKeys: aiResult.choices?.[0]?.message ? Object.keys(aiResult.choices[0].message) : [],
-      hasToolCalls: !!aiResult.choices?.[0]?.message?.tool_calls,
-      hasFunctionCall: !!aiResult.choices?.[0]?.message?.function_call,
+      hasContent: !!aiResult.choices?.[0]?.message?.content,
     }));
 
     let recommendations;
     
-    const toolCall = aiResult.choices?.[0]?.message?.tool_calls?.[0];
-    if (toolCall?.function?.arguments) {
-      console.log("Parsing from tool_calls");
-      recommendations = JSON.parse(toolCall.function.arguments);
-    }
-    else if (aiResult.choices?.[0]?.message?.function_call?.arguments) {
-      console.log("Parsing from function_call");
-      recommendations = JSON.parse(aiResult.choices[0].message.function_call.arguments);
-    }
-    else if (aiResult.choices?.[0]?.message?.content) {
-      console.log("Attempting to parse from content");
+    // Parse from content (JSON mode response)
+    if (aiResult.choices?.[0]?.message?.content) {
+      console.log("Parsing from content (JSON mode)");
       const content = aiResult.choices[0].message.content;
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        recommendations = JSON.parse(jsonMatch[0]);
+      try {
+        recommendations = JSON.parse(content);
+      } catch (parseError) {
+        // Try to extract JSON from the content if it has markdown
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          recommendations = JSON.parse(jsonMatch[0]);
+        }
       }
     }
     
     if (!recommendations) {
-      console.error("Full AI response:", JSON.stringify(aiResult).substring(0, 1000));
+      console.error("Full AI response:", JSON.stringify(aiResult).substring(0, 2000));
       throw new Error("No recommendations generated - could not parse AI response");
     }
     
@@ -747,13 +566,11 @@ Be SPECIFIC. Reference the user's actual skills, preferences, and constraints. U
       aiCentric: recommendations.ai_centric_opportunities?.length,
       aiProof: recommendations.ai_proof_opportunities?.length,
       alternativePaths: recommendations.alternative_paths?.length,
-      alternativeOptions: recommendations.alternative_options?.length
+      alternativeOptions: recommendations.alternative_options?.length,
+      successPlan: !!recommendations.success_plan,
     });
 
-    return new Response(JSON.stringify({ 
-      success: true, 
-      data: recommendations 
-    }), {
+    return new Response(JSON.stringify(recommendations), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
