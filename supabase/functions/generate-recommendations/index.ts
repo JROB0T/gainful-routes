@@ -583,14 +583,39 @@ Generate 10-15 recommendations, 3-6 ai_centric_opportunities, 3-6 ai_proof_oppor
     // Parse from content (JSON mode response)
     if (aiResult.choices?.[0]?.message?.content) {
       console.log("Parsing from content (JSON mode)");
-      const content = aiResult.choices[0].message.content;
+      let content = aiResult.choices[0].message.content;
+      
+      // Clean up common JSON issues from AI responses
+      const cleanJsonContent = (str: string): string => {
+        // Remove markdown code blocks
+        str = str.replace(/```json\s*/gi, '').replace(/```\s*/g, '');
+        // Fix trailing commas before closing braces/brackets
+        str = str.replace(/,(\s*[}\]])/g, '$1');
+        // Fix unescaped quotes in strings (common AI error)
+        // This is a simplified fix - replace smart quotes with regular quotes
+        str = str.replace(/[\u201C\u201D]/g, '"');
+        str = str.replace(/[\u2018\u2019]/g, "'");
+        return str.trim();
+      };
+      
       try {
-        recommendations = JSON.parse(content);
+        recommendations = JSON.parse(cleanJsonContent(content));
       } catch (parseError) {
-        // Try to extract JSON from the content if it has markdown
+        console.log("Initial parse failed, trying to extract JSON block");
+        // Try to extract JSON from the content if it has markdown or extra text
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
-          recommendations = JSON.parse(jsonMatch[0]);
+          try {
+            recommendations = JSON.parse(cleanJsonContent(jsonMatch[0]));
+          } catch (innerError) {
+            console.error("JSON extraction also failed:", innerError);
+            console.error("Problematic content (first 1000 chars):", content.substring(0, 1000));
+            console.error("Problematic content (last 500 chars):", content.substring(content.length - 500));
+            throw new Error("AI returned malformed JSON. Please try again.");
+          }
+        } else {
+          console.error("No JSON object found in response");
+          throw new Error("AI response did not contain valid JSON. Please try again.");
         }
       }
     }
