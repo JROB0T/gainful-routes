@@ -367,7 +367,19 @@ If information is sparse, make reasonable inferences based on available context.
     });
   } catch (error) {
     console.error("Error in extract-profile:", error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    
+    // Return safe error messages - only expose known safe errors
+    const safeErrors = [
+      "LOVABLE_API_KEY is not configured",
+      "AI did not return structured data",
+      "Failed to parse AI analysis results"
+    ];
+    const userMessage = safeErrors.includes(errorMessage) 
+      ? "Analysis failed. Please try again." 
+      : "Something went wrong. Please try again.";
+    
+    return new Response(JSON.stringify({ error: userMessage }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

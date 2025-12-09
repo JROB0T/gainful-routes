@@ -86,7 +86,14 @@ serve(async (req) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    
+    // Return safe error messages - only expose known safe errors
+    const safeErrors = ["No authorization header provided", "User not authenticated or email not available"];
+    const userMessage = safeErrors.includes(errorMessage) 
+      ? errorMessage 
+      : "Something went wrong. Please try again.";
+    
+    return new Response(JSON.stringify({ error: userMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
