@@ -528,7 +528,12 @@ Based on this profile, generate a JSON response with this EXACT structure:
 Generate 10-15 recommendations, 3-6 ai_centric_opportunities, 3-6 ai_proof_opportunities, 3-6 alternative_paths, and 3-6 alternative_options. Return ONLY the JSON, no markdown code blocks.`;
 
     console.log("Calling AI for recommendations (JSON mode)...");
+    console.log("User context length:", userContext.length, "chars");
+    console.log("System prompt length:", systemPrompt.length, "chars");
+    console.log("User prompt length:", userPrompt.length, "chars");
 
+    const startTime = Date.now();
+    
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -544,6 +549,8 @@ Generate 10-15 recommendations, 3-6 ai_centric_opportunities, 3-6 ai_proof_oppor
         response_format: { type: "json_object" }
       }),
     });
+    
+    console.log("AI response received in", Date.now() - startTime, "ms");
 
     if (!response.ok) {
       const errorText = await response.text();

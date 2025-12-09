@@ -87,6 +87,61 @@ export type WizardData = {
   workTypes: string[];
 };
 
+// Test data for development - fill all fields with realistic values
+const testData: WizardData = {
+  firstName: "Test User",
+  state: "California",
+  city: "San Francisco",
+  situation: "looking-for-change",
+  linkedinUrl: "",
+  twitterUrl: "",
+  portfolioUrl: "",
+  resumeText: "5 years software engineering experience. Led team of 4 developers. Expert in Python, JavaScript, React. Built microservices handling 10M requests/day.",
+  skills: ["Python", "JavaScript", "React", "SQL", "AWS", "Docker"],
+  interests: ["AI/ML", "Cloud Computing", "Leadership", "Product Development"],
+  helpTopics: "I enjoy solving complex technical problems and mentoring junior developers",
+  enjoyWithoutPay: "Building side projects and learning new technologies",
+  preferredWorkTypes: ["analytical", "creative"],
+  physicalComfort: 2,
+  toolsComfort: 4,
+  environmentPreferences: ["remote", "office"],
+  safetyConditions: [],
+  certificationOpenness: "somewhat-open",
+  careerIdentity: "analyst",
+  dayToDayPreference: ["problem-solving", "people"],
+  structurePreference: 3,
+  riskTolerance: 4,
+  balanceVsIncome: 3,
+  enjoysTroubleshooting: 4,
+  followsTechnicalInstructions: 4,
+  considersFieldRole: false,
+  structuredHourlyComfort: 3,
+  considersApprenticeships: false,
+  enjoysWriting: true,
+  prefersStructure: false,
+  enjoysDataDriven: 4,
+  prefersCollaborative: true,
+  hybridTechInterest: 3,
+  digitalToolsComfort: 5,
+  timeAvailable: "30+",
+  workSetting: "hybrid",
+  hasCaregiver: false,
+  caregiverDetails: "",
+  avoidIndustries: [],
+  ownsHome: false,
+  hasExtraSpace: false,
+  extraSpaceDetails: "",
+  capitalAvailable: "small",
+  physicalAssets: [],
+  digitalAssets: ["Website"],
+  credentials: ["AWS Certified", "PMP"],
+  networkStrength: "moderate",
+  incomePaths: ["career-change", "freelancing"],
+  incomeType: "mix",
+  timeline: "1-3mo",
+  workTypes: [],
+};
+
 const initialData: WizardData = {
   firstName: "",
   state: "",
@@ -562,11 +617,26 @@ export default function GetStarted() {
             <span className="font-display font-bold text-lg text-foreground">CareerMovr</span>
           </div>
 
-          {!isLoggedIn && (
-            <Button variant="ghost" size="sm" onClick={() => navigate("/auth")}>
-              Sign In
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {import.meta.env.DEV && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  setData(testData);
+                  toast.success("Test data filled!");
+                }}
+                className="text-xs"
+              >
+                Fill Test Data
+              </Button>
+            )}
+            {!isLoggedIn && (
+              <Button variant="ghost" size="sm" onClick={() => navigate("/auth")}>
+                Sign In
+              </Button>
+            )}
+          </div>
         </div>
 
         {showExpiryWarning && (
