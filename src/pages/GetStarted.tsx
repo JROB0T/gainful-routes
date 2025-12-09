@@ -436,7 +436,7 @@ export default function GetStarted() {
       const { error: updateError } = await supabase
         .from('assessment_results')
         .update({
-          recommendations: JSON.parse(JSON.stringify(result.data)),
+          recommendations: result,
           status: 'completed',
           completed_at: new Date().toISOString(),
         })
