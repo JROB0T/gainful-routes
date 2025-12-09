@@ -8,6 +8,7 @@ import Auth from "./pages/Auth";
 import GetStarted from "./pages/GetStarted";
 import Dashboard from "./pages/Dashboard";
 import Install from "./pages/Install";
+import CareerFamily from "./pages/CareerFamily";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/get-started" element={<GetStarted />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/install" element={<Install />} />
+          <Route path="/career-family/:familyId" element={<CareerFamily />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

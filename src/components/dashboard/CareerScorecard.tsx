@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronDown, ChevronRight, Briefcase, Wrench, Cpu, Settings, CheckCircle2, AlertCircle, TrendingUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ChevronDown, ChevronRight, Briefcase, Wrench, Cpu, Settings, CheckCircle2, AlertCircle, TrendingUp, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -102,6 +104,7 @@ function AnimatedScore({ score, delay }: { score: number; delay: number }) {
 
 function CareerFamilyCard({ familyKey, data, index }: { familyKey: string; data: CareerFamilyScore; index: number }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const navigate = useNavigate();
   const config = familyConfig[familyKey];
   const Icon = config?.icon || Briefcase;
   const label = familyLabels[familyKey] || familyKey;
@@ -263,6 +266,24 @@ function CareerFamilyCard({ familyKey, data, index }: { familyKey: string; data:
                     </ul>
                   </motion.div>
                 )}
+
+                {/* Explore Button */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="pt-2"
+                >
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full"
+                    onClick={() => navigate(`/career-family/${familyKey}`)}
+                  >
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Explore All Roles in {label}
+                  </Button>
+                </motion.div>
               </CardContent>
             </motion.div>
           )}
