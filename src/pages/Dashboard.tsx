@@ -156,51 +156,55 @@ export default function Dashboard() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate("/auth");
-        return;
-      }
-      setUser(session.user);
-      
-      // Fetch all assessments for history
-      const { data: allAssessments, error: historyError } = await supabase
-        .from('assessment_results')
-        .select('id, created_at, status, expires_at')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false });
-      
-      if (!historyError && allAssessments) {
-        setAssessmentHistory(allAssessments as AssessmentSummary[]);
-      }
-      
-      // Check for assessment ID in URL params
-      const urlAssessmentId = searchParams.get('id');
-      const isPending = searchParams.get('pending') === 'true';
-      
-      // First try sessionStorage for immediate results
-      const stored = sessionStorage.getItem("careermovr_results");
-      if (stored && !isPending && !urlAssessmentId) {
-        try {
-          setResults(JSON.parse(stored));
-          setAssessmentStatus('completed');
-        } catch (e) {
-          console.error("Failed to parse results:", e);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          navigate("/auth");
+          return;
         }
+        setUser(session.user);
+        
+        // Fetch all assessments for history
+        const { data: allAssessments, error: historyError } = await supabase
+          .from('assessment_results')
+          .select('id, created_at, status, expires_at')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false });
+        
+        if (!historyError && allAssessments) {
+          setAssessmentHistory(allAssessments as AssessmentSummary[]);
+        }
+        
+        // Check for assessment ID in URL params
+        const urlAssessmentId = searchParams.get('id');
+        const isPending = searchParams.get('pending') === 'true';
+        
+        // First try sessionStorage for immediate results
+        const stored = sessionStorage.getItem("careermovr_results");
+        if (stored && !isPending && !urlAssessmentId) {
+          try {
+            setResults(JSON.parse(stored));
+            setAssessmentStatus('completed');
+          } catch (e) {
+            console.error("Failed to parse results:", e);
+          }
+        }
+        
+        // If we have an assessment ID, fetch from database
+        if (urlAssessmentId) {
+          setAssessmentId(urlAssessmentId);
+          await fetchAssessmentResults(urlAssessmentId);
+        } else if (allAssessments && allAssessments.length > 0) {
+          // Load the most recent assessment
+          const mostRecent = allAssessments[0];
+          setAssessmentId(mostRecent.id);
+          await fetchAssessmentResults(mostRecent.id);
+        }
+      } catch (error) {
+        console.error("Error during auth check:", error);
+      } finally {
+        setIsLoading(false);
       }
-      
-      // If we have an assessment ID, fetch from database
-      if (urlAssessmentId) {
-        setAssessmentId(urlAssessmentId);
-        await fetchAssessmentResults(urlAssessmentId);
-      } else if (allAssessments && allAssessments.length > 0) {
-        // Load the most recent assessment
-        const mostRecent = allAssessments[0];
-        setAssessmentId(mostRecent.id);
-        await fetchAssessmentResults(mostRecent.id);
-      }
-      
-      setIsLoading(false);
     };
     
     const fetchAssessmentResults = async (id: string) => {
