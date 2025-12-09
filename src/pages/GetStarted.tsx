@@ -87,59 +87,173 @@ export type WizardData = {
   workTypes: string[];
 };
 
-// Test data for development - fill all fields with realistic values
-const testData: WizardData = {
-  firstName: "Test User",
-  state: "California",
-  city: "San Francisco",
-  situation: "looking-for-change",
-  linkedinUrl: "",
-  twitterUrl: "",
-  portfolioUrl: "",
-  resumeText: "5 years software engineering experience. Led team of 4 developers. Expert in Python, JavaScript, React. Built microservices handling 10M requests/day.",
-  skills: ["Python", "JavaScript", "React", "SQL", "AWS", "Docker"],
-  interests: ["AI/ML", "Cloud Computing", "Leadership", "Product Development"],
-  helpTopics: "I enjoy solving complex technical problems and mentoring junior developers",
-  enjoyWithoutPay: "Building side projects and learning new technologies",
-  preferredWorkTypes: ["analytical", "creative"],
-  physicalComfort: 2,
-  toolsComfort: 4,
-  environmentPreferences: ["remote", "office"],
-  safetyConditions: [],
-  certificationOpenness: "somewhat-open",
-  careerIdentity: "analyst",
-  dayToDayPreference: ["problem-solving", "people"],
-  structurePreference: 3,
-  riskTolerance: 4,
-  balanceVsIncome: 3,
-  enjoysTroubleshooting: 4,
-  followsTechnicalInstructions: 4,
-  considersFieldRole: false,
-  structuredHourlyComfort: 3,
-  considersApprenticeships: false,
-  enjoysWriting: true,
-  prefersStructure: false,
-  enjoysDataDriven: 4,
-  prefersCollaborative: true,
-  hybridTechInterest: 3,
-  digitalToolsComfort: 5,
-  timeAvailable: "30+",
-  workSetting: "hybrid",
-  hasCaregiver: false,
-  caregiverDetails: "",
-  avoidIndustries: [],
-  ownsHome: false,
-  hasExtraSpace: false,
-  extraSpaceDetails: "",
-  capitalAvailable: "small",
-  physicalAssets: [],
-  digitalAssets: ["Website"],
-  credentials: ["AWS Certified", "PMP"],
-  networkStrength: "moderate",
-  incomePaths: ["career-change", "freelancing"],
-  incomeType: "mix",
-  timeline: "1-3mo",
-  workTypes: [],
+// Randomized test data generator for different user profiles
+const generateTestData = (): Partial<WizardData> => {
+  const profiles = [
+    { // Technical/Software
+      name: "Alex Chen",
+      state: "California",
+      city: "San Jose",
+      situation: "looking-for-change",
+      skills: ["Python", "JavaScript", "React", "SQL", "AWS", "Docker", "Kubernetes"],
+      interests: ["AI/ML", "Cloud Computing", "Open Source", "Startups"],
+      helpTopics: "Building scalable systems and mentoring developers",
+      enjoyWithoutPay: "Contributing to open source and learning new frameworks",
+      preferredWorkTypes: ["analytical", "creative"],
+      physicalComfort: 2,
+      toolsComfort: 5,
+      environmentPreferences: ["remote", "office"],
+      careerIdentity: "analyst",
+      dayToDayPreference: ["problem-solving", "software"],
+      credentials: ["AWS Certified", "Google Cloud Professional"],
+    },
+    { // Blue-collar/Trades
+      name: "Mike Johnson",
+      state: "Texas",
+      city: "Houston",
+      situation: "career-transition",
+      skills: ["Welding", "Blueprint Reading", "HVAC", "Electrical Systems", "Plumbing"],
+      interests: ["Construction", "Renewable Energy", "Automotive", "Home Improvement"],
+      helpTopics: "Working with my hands and fixing complex mechanical problems",
+      enjoyWithoutPay: "Restoring cars and home renovation projects",
+      preferredWorkTypes: ["hands-on", "physical", "mechanical"],
+      physicalComfort: 5,
+      toolsComfort: 5,
+      environmentPreferences: ["outdoor", "workshop", "industrial"],
+      careerIdentity: "builder",
+      dayToDayPreference: ["hands-on", "mechanical"],
+      credentials: ["OSHA 30", "EPA 608 Certification"],
+    },
+    { // White-collar/Management
+      name: "Sarah Williams",
+      state: "New York",
+      city: "Manhattan",
+      situation: "just-exploring",
+      skills: ["Project Management", "Excel", "Salesforce", "Public Speaking", "Budgeting"],
+      interests: ["Leadership", "Strategy", "Team Building", "Business Development"],
+      helpTopics: "Leading teams and driving organizational change",
+      enjoyWithoutPay: "Volunteering as a mentor and organizing community events",
+      preferredWorkTypes: ["office", "managing", "helping"],
+      physicalComfort: 1,
+      toolsComfort: 3,
+      environmentPreferences: ["office", "remote"],
+      careerIdentity: "manager",
+      dayToDayPreference: ["people", "organizing"],
+      credentials: ["PMP", "Six Sigma Green Belt", "MBA"],
+    },
+    { // Hybrid Tech-Trade
+      name: "Jordan Rivera",
+      state: "Michigan",
+      city: "Detroit",
+      situation: "upskilling",
+      skills: ["CNC Programming", "CAD/CAM", "Robotics", "PLC Programming", "3D Printing"],
+      interests: ["Manufacturing", "Automation", "Industrial IoT", "Electric Vehicles"],
+      helpTopics: "Bridging traditional manufacturing with modern technology",
+      enjoyWithoutPay: "Building custom electronics and 3D printed projects",
+      preferredWorkTypes: ["analytical", "hands-on", "machines"],
+      physicalComfort: 4,
+      toolsComfort: 5,
+      environmentPreferences: ["industrial", "workshop"],
+      careerIdentity: "technician",
+      dayToDayPreference: ["troubleshooting", "hands-on"],
+      credentials: ["Certified Manufacturing Engineer", "AutoCAD Certified"],
+    },
+    { // Creative/Freelance
+      name: "Emma Thompson",
+      state: "Oregon",
+      city: "Portland",
+      situation: "side-income",
+      skills: ["Graphic Design", "Copywriting", "Social Media", "Photography", "Video Editing"],
+      interests: ["Branding", "Content Creation", "Freelancing", "E-commerce"],
+      helpTopics: "Creating compelling visual content and building personal brands",
+      enjoyWithoutPay: "Photography, blogging, and creating digital art",
+      preferredWorkTypes: ["creative", "analytical"],
+      physicalComfort: 2,
+      toolsComfort: 4,
+      environmentPreferences: ["remote", "office"],
+      careerIdentity: "communicator",
+      dayToDayPreference: ["creative-work", "problem-solving"],
+      credentials: ["Adobe Certified Expert", "HubSpot Content Marketing"],
+    },
+  ];
+
+  const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+  const pickMultiple = <T,>(arr: T[], min: number, max: number): T[] => {
+    const count = min + Math.floor(Math.random() * (max - min + 1));
+    const shuffled = [...arr].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, count);
+  };
+  const randInt = (min: number, max: number) => min + Math.floor(Math.random() * (max - min + 1));
+
+  const profile = pick(profiles);
+  const situations = ["just-exploring", "looking-for-change", "career-transition", "upskilling", "side-income"];
+  const timeOptions = ["<10", "10-20", "20-30", "30+"];
+  const workSettings = ["remote", "on-site", "hybrid"];
+  const certOpenness = ["very-open", "somewhat-open", "not-interested"];
+  const capitalOptions = ["none", "small", "medium", "significant"];
+  const networkOptions = ["weak", "moderate", "strong"];
+  const incomeTypes = ["steady", "mix", "variable"];
+  const timelines = ["asap", "1-3mo", "3-6mo", "6mo+"];
+  const safetyOptions = ["heights", "outdoors", "noise", "chemicals", "none"];
+  const physicalAssetOptions = ["Vehicle", "Tools", "Workshop", "Land"];
+  const digitalAssetOptions = ["Website", "Social Following", "Email List", "Online Course"];
+  const incomePathOptions = ["career-change", "freelancing", "part-time", "creator", "small-business", "rental"];
+
+  return {
+    firstName: profile.name,
+    state: profile.state,
+    city: profile.city,
+    situation: pick(situations),
+    // Keep these empty as requested
+    linkedinUrl: "",
+    twitterUrl: "",
+    portfolioUrl: "",
+    resumeText: "",
+    // Fill the rest
+    skills: profile.skills,
+    interests: profile.interests,
+    helpTopics: profile.helpTopics,
+    enjoyWithoutPay: profile.enjoyWithoutPay,
+    preferredWorkTypes: profile.preferredWorkTypes,
+    physicalComfort: profile.physicalComfort,
+    toolsComfort: profile.toolsComfort,
+    environmentPreferences: profile.environmentPreferences,
+    safetyConditions: pickMultiple(safetyOptions, 0, 2),
+    certificationOpenness: pick(certOpenness),
+    careerIdentity: profile.careerIdentity,
+    dayToDayPreference: profile.dayToDayPreference,
+    structurePreference: randInt(1, 5),
+    riskTolerance: randInt(2, 5),
+    balanceVsIncome: randInt(2, 5),
+    enjoysTroubleshooting: randInt(2, 5),
+    followsTechnicalInstructions: randInt(3, 5),
+    considersFieldRole: Math.random() > 0.5,
+    structuredHourlyComfort: randInt(2, 5),
+    considersApprenticeships: Math.random() > 0.6,
+    enjoysWriting: Math.random() > 0.4,
+    prefersStructure: Math.random() > 0.5,
+    enjoysDataDriven: randInt(2, 5),
+    prefersCollaborative: Math.random() > 0.4,
+    hybridTechInterest: randInt(2, 5),
+    digitalToolsComfort: randInt(3, 5),
+    timeAvailable: pick(timeOptions),
+    workSetting: pick(workSettings),
+    hasCaregiver: Math.random() > 0.8,
+    caregiverDetails: "",
+    avoidIndustries: [],
+    ownsHome: Math.random() > 0.6,
+    hasExtraSpace: Math.random() > 0.5,
+    extraSpaceDetails: Math.random() > 0.5 ? "Garage" : "",
+    capitalAvailable: pick(capitalOptions),
+    physicalAssets: pickMultiple(physicalAssetOptions, 0, 2),
+    digitalAssets: pickMultiple(digitalAssetOptions, 0, 2),
+    credentials: profile.credentials,
+    networkStrength: pick(networkOptions),
+    incomePaths: pickMultiple(incomePathOptions, 1, 3),
+    incomeType: pick(incomeTypes),
+    timeline: pick(timelines),
+    workTypes: [],
+  };
 };
 
 const initialData: WizardData = {
@@ -623,8 +737,9 @@ export default function GetStarted() {
                 variant="outline" 
                 size="sm" 
                 onClick={() => {
-                  setData(testData);
-                  toast.success("Test data filled!");
+                  const testData = generateTestData();
+                  setData(prev => ({ ...prev, ...testData }));
+                  toast.success(`Test data filled: ${testData.firstName} (${testData.careerIdentity})`);
                 }}
                 className="text-xs"
               >
