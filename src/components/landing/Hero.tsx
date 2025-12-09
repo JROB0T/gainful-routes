@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Play } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export function Hero() {
@@ -30,8 +30,8 @@ export function Hero() {
               and next steps — in minutes.
             </p>
 
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-8 animate-fade-in animation-delay-400">
+            {/* CTA Button */}
+            <div className="flex justify-center lg:justify-start mb-8 animate-fade-in animation-delay-400">
               <Button
                 variant="hero"
                 size="xl"
@@ -40,19 +40,6 @@ export function Hero() {
               >
                 Take the Free Career Assessment
                 <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full sm:w-auto min-h-[48px] gap-2"
-                onClick={() =>
-                  document
-                    .getElementById("how-it-works")
-                    ?.scrollIntoView({ behavior: "smooth" })
-                }
-              >
-                <Play className="w-4 h-4" />
-                Watch Demo
               </Button>
             </div>
           </div>
