@@ -492,7 +492,7 @@ export default function GetStarted() {
         console.warn("Email notification failed (non-critical):", emailError);
       }
       
-      sessionStorage.setItem("careermovr_results", JSON.stringify(result.data));
+      sessionStorage.setItem("careermovr_results", JSON.stringify(result));
       toast.success("Your personalized opportunities are ready!");
       navigate(`/dashboard?id=${assessmentId}`);
     } catch (error) {
