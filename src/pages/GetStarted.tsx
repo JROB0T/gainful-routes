@@ -446,8 +446,9 @@ export default function GetStarted() {
         console.error("Failed to save results to database:", updateError);
       }
       
+      // Email notification is non-blocking - don't fail if it errors
       try {
-        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-results-email`, {
+        const emailResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-results-email`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -459,8 +460,11 @@ export default function GetStarted() {
             userName: data.firstName || session.user.email?.split('@')[0],
           }),
         });
+        if (!emailResponse.ok) {
+          console.warn("Email notification failed (non-critical):", await emailResponse.text());
+        }
       } catch (emailError) {
-        console.error("Failed to send email notification:", emailError);
+        console.warn("Email notification failed (non-critical):", emailError);
       }
       
       sessionStorage.setItem("careermovr_results", JSON.stringify(result.data));
