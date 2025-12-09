@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { 
   Compass, LogOut, User, Calendar, RefreshCw, Download, ChevronRight, ChevronDown,
   Sparkles, Lock, Target, Zap, TrendingUp, Clock, DollarSign, CheckCircle2,
-  Brain, Shield, Rocket, Star, ArrowRight, Printer, Lightbulb, Package, Loader2, BarChart3
+  Brain, Shield, Rocket, Star, ArrowRight, Printer, Lightbulb, Package, Loader2, BarChart3, Award
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -22,6 +22,7 @@ import {
   AssetInventory,
   TimeToIncomeTimeline,
 } from "@/components/dashboard/AnalyticsCharts";
+import { CareerScorecard } from "@/components/dashboard/CareerScorecard";
 
 type BaseOpportunity = {
   title: string;
@@ -77,6 +78,22 @@ type ProfileSummary = {
   best_fit_types: string[];
 };
 
+type CareerFamilyScore = {
+  family: string;
+  score: number;
+  top_roles: string[];
+  strengths: string[];
+  gaps: string[];
+  why_match: string;
+};
+
+type CareerScorecardData = {
+  technical: CareerFamilyScore;
+  white_collar: CareerFamilyScore;
+  blue_collar: CareerFamilyScore;
+  hybrid: CareerFamilyScore;
+};
+
 type Results = {
   recommendations: Recommendation[];
   ai_centric_opportunities: AICentricOpportunity[];
@@ -86,6 +103,7 @@ type Results = {
   success_plan: SuccessPlan;
   low_hanging_fruit: string[];
   profile_summary: ProfileSummary;
+  career_scorecard?: CareerScorecardData;
 };
 
 type AssessmentSummary = {
@@ -1328,6 +1346,7 @@ export default function Dashboard() {
           <aside className="w-64 flex-shrink-0 hidden lg:block">
             <nav className="sticky top-24 space-y-1">
               <NavItem id="overview" label="Overview" icon={Compass} />
+              <NavItem id="scorecard" label="Career Scorecard" icon={Award} />
               <NavItem id="analytics" label="Analytics" icon={BarChart3} />
               <NavItem id="recommendations" label="Recommendations" icon={Target} count={results.recommendations?.length} />
               <NavItem id="ai-centric" label="AI Opportunities" icon={Brain} count={results.ai_centric_opportunities?.length} />
@@ -1443,6 +1462,7 @@ export default function Dashboard() {
             {/* Mobile Nav */}
             <div className="lg:hidden flex gap-2 overflow-x-auto pb-4 mb-4 scrollbar-hide -mx-4 px-4">
               <NavItem id="overview" label="Overview" icon={Compass} />
+              <NavItem id="scorecard" label="Scorecard" icon={Award} />
               <NavItem id="analytics" label="Analytics" icon={BarChart3} />
               <NavItem id="recommendations" label="Recommendations" icon={Target} />
               <NavItem id="ai-centric" label="AI Opps" icon={Brain} />
@@ -1530,6 +1550,11 @@ export default function Dashboard() {
                   })}
                 </div>
               </div>
+            )}
+
+            {/* Career Scorecard Section */}
+            {activeSection === "scorecard" && (
+              <CareerScorecard scorecard={results.career_scorecard || null} />
             )}
 
             {/* Analytics Section */}
