@@ -8,10 +8,15 @@ import { toast } from "sonner";
 import { Step1BasicInfo } from "@/components/wizard/Step1BasicInfo";
 import { Step2Upload } from "@/components/wizard/Step2Upload";
 import { Step3Skills } from "@/components/wizard/Step3Skills";
-import { Step4Personality } from "@/components/wizard/Step4Personality";
+import { Step4WorkPreference } from "@/components/wizard/Step4WorkPreference";
+import { Step5Environment } from "@/components/wizard/Step5Environment";
+import { Step6CareerStyle } from "@/components/wizard/Step6CareerStyle";
 import { Step5Constraints } from "@/components/wizard/Step5Constraints";
 import { Step6Assets } from "@/components/wizard/Step6Assets";
 import { Step7Goals } from "@/components/wizard/Step7Goals";
+import { StepTradeQuestions } from "@/components/wizard/StepTradeQuestions";
+import { StepWhiteCollarQuestions } from "@/components/wizard/StepWhiteCollarQuestions";
+import { StepHybridQuestions } from "@/components/wizard/StepHybridQuestions";
 import { TeaserPreview } from "@/components/wizard/TeaserPreview";
 import { WizardProgress } from "@/components/wizard/WizardProgress";
 
@@ -26,23 +31,46 @@ export type WizardData = {
   twitterUrl: string;
   portfolioUrl: string;
   resumeText: string;
-  // Step 3
+  // Step 3 - Skills
   skills: string[];
   interests: string[];
   helpTopics: string;
   enjoyWithoutPay: string;
-  // Step 4
-  workTypes: string[];
+  // Step 4 - Work Preference (NEW)
+  preferredWorkTypes: string[];
+  physicalComfort: number;
+  toolsComfort: number;
+  // Step 5 - Environment (NEW)
+  environmentPreferences: string[];
+  safetyConditions: string[];
+  certificationOpenness: string;
+  // Step 6 - Career Style (NEW consolidated)
+  careerIdentity: string;
+  dayToDayPreference: string[];
   structurePreference: number;
   riskTolerance: number;
   balanceVsIncome: number;
-  // Step 5
+  // Conditional - Trade Questions
+  enjoysTroubleshooting: number;
+  followsTechnicalInstructions: number;
+  considersFieldRole: boolean;
+  structuredHourlyComfort: number;
+  considersApprenticeships: boolean;
+  // Conditional - White Collar Questions
+  enjoysWriting: boolean;
+  prefersStructure: boolean;
+  enjoysDataDriven: number;
+  prefersCollaborative: boolean;
+  // Conditional - Hybrid Questions
+  hybridTechInterest: number;
+  digitalToolsComfort: number;
+  // Step 7 - Constraints (was Step 5)
   timeAvailable: string;
   workSetting: string;
   hasCaregiver: boolean;
   caregiverDetails: string;
   avoidIndustries: string[];
-  // Step 6
+  // Step 8 - Assets (was Step 6)
   ownsHome: boolean;
   hasExtraSpace: boolean;
   extraSpaceDetails: string;
@@ -51,10 +79,12 @@ export type WizardData = {
   digitalAssets: string[];
   credentials: string[];
   networkStrength: string;
-  // Step 7
+  // Step 9 - Goals (was Step 7)
   incomePaths: string[];
   incomeType: string;
   timeline: string;
+  // Legacy fields kept for compatibility
+  workTypes: string[];
 };
 
 const initialData: WizardData = {
@@ -70,10 +100,28 @@ const initialData: WizardData = {
   interests: [],
   helpTopics: "",
   enjoyWithoutPay: "",
-  workTypes: [],
+  preferredWorkTypes: [],
+  physicalComfort: 3,
+  toolsComfort: 3,
+  environmentPreferences: [],
+  safetyConditions: [],
+  certificationOpenness: "",
+  careerIdentity: "",
+  dayToDayPreference: [],
   structurePreference: 3,
   riskTolerance: 3,
   balanceVsIncome: 3,
+  enjoysTroubleshooting: 3,
+  followsTechnicalInstructions: 3,
+  considersFieldRole: false,
+  structuredHourlyComfort: 3,
+  considersApprenticeships: false,
+  enjoysWriting: false,
+  prefersStructure: false,
+  enjoysDataDriven: 3,
+  prefersCollaborative: false,
+  hybridTechInterest: 3,
+  digitalToolsComfort: 3,
   timeAvailable: "",
   workSetting: "",
   hasCaregiver: false,
@@ -90,7 +138,40 @@ const initialData: WizardData = {
   incomePaths: [],
   incomeType: "",
   timeline: "",
+  workTypes: [],
 };
+
+// Helper to detect career track signals
+function getCareerTrackSignals(data: WizardData) {
+  const blueCollarSignals = 
+    (data.preferredWorkTypes?.includes("hands-on") ? 1 : 0) +
+    (data.preferredWorkTypes?.includes("physical") ? 1 : 0) +
+    (data.preferredWorkTypes?.includes("machines") ? 1 : 0) +
+    (data.preferredWorkTypes?.includes("mechanical") ? 1 : 0) +
+    (data.physicalComfort >= 4 ? 1 : 0) +
+    (data.toolsComfort >= 4 ? 1 : 0) +
+    (data.environmentPreferences?.includes("outdoor") ? 1 : 0) +
+    (data.environmentPreferences?.includes("workshop") ? 1 : 0) +
+    (data.environmentPreferences?.includes("industrial") ? 1 : 0);
+
+  const whiteCollarSignals =
+    (data.preferredWorkTypes?.includes("office") ? 1 : 0) +
+    (data.preferredWorkTypes?.includes("analytical") ? 1 : 0) +
+    (data.physicalComfort <= 2 ? 1 : 0) +
+    (data.environmentPreferences?.includes("office") ? 1 : 0) +
+    (data.environmentPreferences?.includes("remote") ? 1 : 0);
+
+  const technicalSignals =
+    (data.preferredWorkTypes?.includes("analytical") ? 1 : 0) +
+    (data.toolsComfort >= 4 ? 1 : 0) +
+    (data.dayToDayPreference?.includes("troubleshooting") ? 1 : 0);
+
+  return {
+    showTradeQuestions: blueCollarSignals >= 3,
+    showWhiteCollarQuestions: whiteCollarSignals >= 3 && blueCollarSignals < 2,
+    showHybridQuestions: blueCollarSignals >= 2 && technicalSignals >= 2,
+  };
+}
 
 export default function GetStarted() {
   const navigate = useNavigate();
@@ -111,7 +192,6 @@ export default function GetStarted() {
     if (paymentStatus === "success") {
       setHasPaid(true);
       toast.success("Payment successful! You now have full access.");
-      // Clear the query param
       setSearchParams({});
     } else if (paymentStatus === "cancelled") {
       toast.info("Payment was cancelled.");
@@ -124,14 +204,12 @@ export default function GetStarted() {
       const { data: { session } } = await supabase.auth.getSession();
       setIsLoggedIn(!!session);
       
-      // Prefill firstName from user session
       if (session?.user) {
         const userName = session.user.user_metadata?.full_name || 
                          session.user.user_metadata?.name ||
                          session.user.email?.split('@')[0] || '';
         setData(prev => ({ ...prev, firstName: userName }));
         
-        // Check if user has paid via Stripe
         try {
           const { data: paymentData, error } = await supabase.functions.invoke("check-payment");
           if (!error && paymentData?.hasPaid) {
@@ -152,14 +230,12 @@ export default function GetStarted() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setIsLoggedIn(!!session);
       
-      // Update firstName when auth state changes
       if (session?.user) {
         const userName = session.user.user_metadata?.full_name || 
                          session.user.user_metadata?.name ||
                          session.user.email?.split('@')[0] || '';
         setData(prev => ({ ...prev, firstName: userName }));
         
-        // Check payment status on auth change
         try {
           const { data: paymentData, error } = await supabase.functions.invoke("check-payment");
           if (!error && paymentData?.hasPaid) {
@@ -184,8 +260,38 @@ export default function GetStarted() {
     setData(prev => ({ ...prev, ...newData }));
   };
 
+  // Build step sequence based on branching logic
+  const getStepSequence = () => {
+    const baseSteps = [
+      "basic-info",      // 1
+      "upload",          // 2
+      "skills",          // 3
+      "work-preference", // 4
+      "environment",     // 5
+      "career-style",    // 6
+    ];
+    
+    const signals = getCareerTrackSignals(data);
+    const conditionalSteps: string[] = [];
+    
+    if (signals.showTradeQuestions) conditionalSteps.push("trade-questions");
+    if (signals.showWhiteCollarQuestions) conditionalSteps.push("white-collar-questions");
+    if (signals.showHybridQuestions) conditionalSteps.push("hybrid-questions");
+    
+    const endSteps = [
+      "constraints",  // 7+
+      "assets",       // 8+
+      "goals",        // 9+
+    ];
+    
+    return [...baseSteps, ...conditionalSteps, ...endSteps];
+  };
+
+  const stepSequence = getStepSequence();
+  const currentStepName = stepSequence[step - 1] || "basic-info";
+
   const handleNext = () => {
-    if (step < 8) {
+    if (step < stepSequence.length) {
       setStep(step + 1);
     }
   };
@@ -203,17 +309,11 @@ export default function GetStarted() {
     }
 
     setIsAnalyzing(true);
-    
-    // Create AbortController with 90 second timeout for mobile
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      controller.abort();
-    }, 90000);
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
     
     try {
-      toast.info("Analyzing your profile... This may take up to a minute on mobile.", {
-        duration: 10000,
-      });
+      toast.info("Analyzing your profile... This may take up to a minute on mobile.", { duration: 10000 });
       
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-profile`, {
         method: "POST",
@@ -240,7 +340,6 @@ export default function GetStarted() {
       const result = await response.json();
       const extracted = result.data;
 
-      // Set teaser data for preview
       setAiAnalysis({
         skillsCount: extracted.teaserSummary?.skillsCount || extracted.skills?.length || 0,
         alignedTypes: extracted.teaserSummary?.alignedTypes || [],
@@ -249,7 +348,6 @@ export default function GetStarted() {
         headline: extracted.teaserSummary?.headline || "Your profile shows promising potential!",
       });
 
-      // Auto-fill form fields from AI extraction
       updateData({
         skills: extracted.skills || [],
         interests: extracted.interests || [],
@@ -262,15 +360,13 @@ export default function GetStarted() {
       });
 
       toast.success("Profile analyzed successfully!");
-      setStep(3); // Go to teaser for free users, or step 3 if paid
+      setStep(3);
     } catch (error) {
       clearTimeout(timeoutId);
       console.error("AI analysis error:", error);
       
       if (error instanceof Error && error.name === 'AbortError') {
-        toast.error("Analysis timed out. Please try again with a stable connection.", {
-          duration: 8000,
-        });
+        toast.error("Analysis timed out. Please try again with a stable connection.", { duration: 8000 });
       } else {
         toast.error(error instanceof Error ? error.message : "Failed to analyze profile. Please try again.");
       }
@@ -279,11 +375,9 @@ export default function GetStarted() {
     }
   };
 
-
   const handleGenerateOpportunities = async () => {
     setIsGenerating(true);
     
-    // Get current user session
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       toast.error("Please sign in to generate your assessment");
@@ -291,16 +385,12 @@ export default function GetStarted() {
       return;
     }
     
-    // Create AbortController with 120 second timeout for recommendations (longer AI call)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      controller.abort();
-    }, 120000);
+    const timeoutId = setTimeout(() => controller.abort(), 120000);
     
     let assessmentId: string | null = null;
     
     try {
-      // First, create the assessment record in the database
       const { data: assessment, error: insertError } = await supabase
         .from('assessment_results')
         .insert([{
@@ -317,11 +407,8 @@ export default function GetStarted() {
       }
       
       assessmentId = assessment.id;
-      console.log("Created assessment record:", assessmentId);
       
-      toast.info("Generating your personalized opportunities... This may take 1-2 minutes. You'll receive an email when ready!", {
-        duration: 20000,
-      });
+      toast.info("Generating your personalized opportunities... This may take 1-2 minutes. You'll receive an email when ready!", { duration: 20000 });
       
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-recommendations`, {
         method: "POST",
@@ -346,7 +433,6 @@ export default function GetStarted() {
 
       const result = await response.json();
       
-      // Update the assessment record with results
       const { error: updateError } = await supabase
         .from('assessment_results')
         .update({
@@ -360,7 +446,6 @@ export default function GetStarted() {
         console.error("Failed to save results to database:", updateError);
       }
       
-      // Send email notification (fire and forget)
       try {
         await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-results-email`, {
           method: "POST",
@@ -374,22 +459,17 @@ export default function GetStarted() {
             userName: data.firstName || session.user.email?.split('@')[0],
           }),
         });
-        console.log("Email notification sent");
       } catch (emailError) {
         console.error("Failed to send email notification:", emailError);
-        // Don't fail the whole operation if email fails
       }
       
-      // Store results in sessionStorage for immediate access
       sessionStorage.setItem("careermovr_results", JSON.stringify(result.data));
-      
       toast.success("Your personalized opportunities are ready!");
       navigate(`/dashboard?id=${assessmentId}`);
     } catch (error) {
       clearTimeout(timeoutId);
       console.error("Generation error:", error);
       
-      // Update assessment status to failed if we have an ID
       if (assessmentId) {
         await supabase
           .from('assessment_results')
@@ -401,10 +481,7 @@ export default function GetStarted() {
       }
       
       if (error instanceof Error && error.name === 'AbortError') {
-        toast.error("Generation timed out. Check your email - we'll notify you when your results are ready!", {
-          duration: 10000,
-        });
-        // Navigate to dashboard anyway - they can check back later
+        toast.error("Generation timed out. Check your email - we'll notify you when your results are ready!", { duration: 10000 });
         if (assessmentId) {
           navigate(`/dashboard?id=${assessmentId}&pending=true`);
         }
@@ -416,11 +493,9 @@ export default function GetStarted() {
     }
   };
 
-  // Determine total steps based on payment status
-  const totalSteps = hasPaid ? 7 : 3;
+  const totalSteps = hasPaid ? stepSequence.length : 3;
   const displayStep = hasPaid ? step : Math.min(step, 3);
 
-  // Calculate days remaining for expiry warning
   const daysRemaining = expiryDate 
     ? differenceInDays(new Date(expiryDate), new Date())
     : null;
@@ -436,14 +511,12 @@ export default function GetStarted() {
 
   return (
     <div className="min-h-screen bg-gradient-hero overflow-x-hidden max-w-[100vw]">
-      {/* Background decorations */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl" />
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-accent/10 rounded-full blur-3xl" />
       </div>
 
       <div className="relative z-10 container px-4 py-8 max-w-3xl mx-auto">
-        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <button
             onClick={() => navigate("/")}
@@ -467,8 +540,6 @@ export default function GetStarted() {
           )}
         </div>
 
-
-        {/* Expiry Warning Banner */}
         {showExpiryWarning && (
           <div className="mb-4 p-4 rounded-lg bg-warning/10 border border-warning/30 flex items-center gap-3">
             <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0" />
@@ -487,106 +558,105 @@ export default function GetStarted() {
           </div>
         )}
 
-        {/* Progress */}
         <WizardProgress currentStep={displayStep} totalSteps={totalSteps} />
 
-        {/* Step content */}
         <div className="bg-card rounded-2xl border border-border shadow-xl p-6 md:p-8 mt-8">
-          {step === 1 && (
-            <Step1BasicInfo
-              data={data}
-              updateData={updateData}
-              onNext={handleNext}
-            />
+          {currentStepName === "basic-info" && (
+            <Step1BasicInfo data={data} updateData={updateData} onNext={handleNext} />
           )}
           
-          {step === 2 && (
-            <Step2Upload
-              data={data}
-              updateData={updateData}
-              onBack={handleBack}
-              onAutoFill={handleAutoFill}
-              isAnalyzing={isAnalyzing}
-            />
+          {currentStepName === "upload" && (
+            <Step2Upload data={data} updateData={updateData} onBack={handleBack} onAutoFill={handleAutoFill} isAnalyzing={isAnalyzing} />
           )}
           
           {step === 3 && !hasPaid && (
-            <TeaserPreview
-              analysis={aiAnalysis}
-              onBack={handleBack}
-              isLoggedIn={isLoggedIn}
-            />
+            <TeaserPreview analysis={aiAnalysis} onBack={handleBack} isLoggedIn={isLoggedIn} />
           )}
 
-          {/* Paid user steps */}
-          {hasPaid && step === 3 && (
+          {hasPaid && currentStepName === "skills" && (
             <Step3Skills
-              data={{
-                skills: data.skills,
-                interests: data.interests,
-                helpTopics: data.helpTopics,
-                enjoyWithoutPay: data.enjoyWithoutPay,
-              }}
+              data={{ skills: data.skills, interests: data.interests, helpTopics: data.helpTopics, enjoyWithoutPay: data.enjoyWithoutPay }}
               updateData={updateData}
               onNext={handleNext}
               onBack={handleBack}
             />
           )}
 
-          {hasPaid && step === 4 && (
-            <Step4Personality
-              data={{
-                workTypes: data.workTypes,
-                structurePreference: data.structurePreference,
-                riskTolerance: data.riskTolerance,
-                balanceVsIncome: data.balanceVsIncome,
-              }}
+          {hasPaid && currentStepName === "work-preference" && (
+            <Step4WorkPreference
+              data={{ preferredWorkTypes: data.preferredWorkTypes, physicalComfort: data.physicalComfort, toolsComfort: data.toolsComfort }}
               updateData={updateData}
               onNext={handleNext}
               onBack={handleBack}
             />
           )}
 
-          {hasPaid && step === 5 && (
+          {hasPaid && currentStepName === "environment" && (
+            <Step5Environment
+              data={{ environmentPreferences: data.environmentPreferences, safetyConditions: data.safetyConditions, certificationOpenness: data.certificationOpenness }}
+              updateData={updateData}
+              onNext={handleNext}
+              onBack={handleBack}
+            />
+          )}
+
+          {hasPaid && currentStepName === "career-style" && (
+            <Step6CareerStyle
+              data={{ careerIdentity: data.careerIdentity, dayToDayPreference: data.dayToDayPreference, structurePreference: data.structurePreference, riskTolerance: data.riskTolerance, balanceVsIncome: data.balanceVsIncome }}
+              updateData={updateData}
+              onNext={handleNext}
+              onBack={handleBack}
+            />
+          )}
+
+          {hasPaid && currentStepName === "trade-questions" && (
+            <StepTradeQuestions
+              data={{ enjoysTroubleshooting: data.enjoysTroubleshooting, followsTechnicalInstructions: data.followsTechnicalInstructions, considersFieldRole: data.considersFieldRole, structuredHourlyComfort: data.structuredHourlyComfort, considersApprenticeships: data.considersApprenticeships }}
+              updateData={updateData}
+              onNext={handleNext}
+              onBack={handleBack}
+            />
+          )}
+
+          {hasPaid && currentStepName === "white-collar-questions" && (
+            <StepWhiteCollarQuestions
+              data={{ enjoysWriting: data.enjoysWriting, prefersStructure: data.prefersStructure, enjoysDataDriven: data.enjoysDataDriven, prefersCollaborative: data.prefersCollaborative }}
+              updateData={updateData}
+              onNext={handleNext}
+              onBack={handleBack}
+            />
+          )}
+
+          {hasPaid && currentStepName === "hybrid-questions" && (
+            <StepHybridQuestions
+              data={{ hybridTechInterest: data.hybridTechInterest, digitalToolsComfort: data.digitalToolsComfort }}
+              updateData={updateData}
+              onNext={handleNext}
+              onBack={handleBack}
+            />
+          )}
+
+          {hasPaid && currentStepName === "constraints" && (
             <Step5Constraints
-              data={{
-                timeAvailable: data.timeAvailable,
-                workSetting: data.workSetting,
-                hasCaregiver: data.hasCaregiver,
-                caregiverDetails: data.caregiverDetails,
-                avoidIndustries: data.avoidIndustries,
-              }}
+              data={{ timeAvailable: data.timeAvailable, workSetting: data.workSetting, hasCaregiver: data.hasCaregiver, caregiverDetails: data.caregiverDetails, avoidIndustries: data.avoidIndustries }}
               updateData={updateData}
               onNext={handleNext}
               onBack={handleBack}
             />
           )}
 
-          {hasPaid && step === 6 && (
+          {hasPaid && currentStepName === "assets" && (
             <Step6Assets
-              data={{
-                ownsHome: data.ownsHome,
-                hasExtraSpace: data.hasExtraSpace,
-                extraSpaceDetails: data.extraSpaceDetails,
-                capitalAvailable: data.capitalAvailable,
-                physicalAssets: data.physicalAssets,
-                digitalAssets: data.digitalAssets,
-                credentials: data.credentials,
-                networkStrength: data.networkStrength,
-              }}
+              data={{ ownsHome: data.ownsHome, hasExtraSpace: data.hasExtraSpace, extraSpaceDetails: data.extraSpaceDetails, capitalAvailable: data.capitalAvailable, physicalAssets: data.physicalAssets, digitalAssets: data.digitalAssets, credentials: data.credentials, networkStrength: data.networkStrength }}
               updateData={updateData}
               onNext={handleNext}
               onBack={handleBack}
             />
           )}
 
-          {hasPaid && step === 7 && (
+          {hasPaid && currentStepName === "goals" && (
             <Step7Goals
-              data={{
-                incomePaths: data.incomePaths,
-                incomeType: data.incomeType,
-                timeline: data.timeline,
-              }}
+              data={{ incomePaths: data.incomePaths, incomeType: data.incomeType, timeline: data.timeline }}
               updateData={updateData}
               onBack={handleBack}
               onSubmit={handleGenerateOpportunities}
