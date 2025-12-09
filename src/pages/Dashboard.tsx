@@ -704,6 +704,124 @@ export default function Dashboard() {
         y += 30;
       }
       
+      // Career Scorecard
+      if (results.career_scorecard) {
+        addSectionHeader("Career Scorecard - Your Best Fit Paths", colors.primary);
+        
+        const scorecardColors: Record<string, [number, number, number]> = {
+          technical: colors.blue,
+          white_collar: colors.purple,
+          blue_collar: colors.warning,
+          hybrid: colors.teal,
+        };
+        
+        const scorecardLabels: Record<string, string> = {
+          technical: "Technical Careers",
+          white_collar: "White-Collar (Non-Technical)",
+          blue_collar: "Blue-Collar / Skilled Trades",
+          hybrid: "Hybrid Technical-Trade",
+        };
+        
+        // Sort by score descending
+        const sortedFamilies = Object.entries(results.career_scorecard)
+          .filter(([_, data]) => data && typeof data.score === 'number')
+          .sort(([, a], [, b]) => (b as any).score - (a as any).score);
+        
+        sortedFamilies.forEach(([familyKey, data]: [string, any], index) => {
+          checkPageBreak(50);
+          
+          const familyColor = scorecardColors[familyKey] || colors.muted;
+          const familyLabel = scorecardLabels[familyKey] || familyKey;
+          
+          // Card background
+          doc.setFillColor(...colors.secondary);
+          doc.roundedRect(margin, y - 2, contentWidth, 8, 1, 1, 'F');
+          
+          // Best match badge for first
+          if (index === 0) {
+            doc.setFillColor(...colors.accent);
+            doc.roundedRect(margin + contentWidth - 30, y - 6, 28, 6, 1, 1, 'F');
+            doc.setTextColor(...colors.white);
+            doc.setFontSize(6);
+            doc.text("BEST MATCH", margin + contentWidth - 29, y - 2);
+          }
+          
+          // Title and score
+          doc.setFontSize(11);
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(...colors.dark);
+          doc.text(familyLabel, margin + 3, y + 4);
+          
+          // Score badge
+          const scoreColor = data.score >= 80 ? colors.accent : data.score >= 60 ? colors.blue : data.score >= 40 ? colors.warning : colors.muted;
+          doc.setFillColor(...scoreColor);
+          doc.roundedRect(margin + contentWidth - 20, y - 1, 18, 7, 1, 1, 'F');
+          doc.setTextColor(...colors.white);
+          doc.setFontSize(9);
+          doc.text(`${data.score}%`, margin + contentWidth - 15, y + 4);
+          
+          y += 12;
+          
+          // Why it matches
+          if (data.why_match) {
+            doc.setFont("helvetica", "italic");
+            doc.setFontSize(8);
+            doc.setTextColor(...colors.muted);
+            const whyLines = doc.splitTextToSize(data.why_match, contentWidth - 10);
+            whyLines.forEach((line: string) => {
+              doc.text(line, margin + 3, y);
+              y += 4;
+            });
+            y += 2;
+          }
+          
+          // Top roles
+          if (data.top_roles?.length) {
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(8);
+            doc.setTextColor(...familyColor);
+            doc.text("Top Roles:", margin + 3, y);
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(...colors.text);
+            const rolesText = data.top_roles.slice(0, 4).join("  |  ");
+            doc.text(rolesText, margin + 25, y);
+            y += 6;
+          }
+          
+          // Strengths (condensed)
+          if (data.strengths?.length) {
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(8);
+            doc.setTextColor(...colors.accent);
+            doc.text("Strengths:", margin + 3, y);
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(...colors.muted);
+            const strengthsText = data.strengths.slice(0, 2).join(" | ");
+            const strengthLines = doc.splitTextToSize(strengthsText, contentWidth - 30);
+            doc.text(strengthLines[0], margin + 25, y);
+            y += 6;
+          }
+          
+          // Gaps (condensed)
+          if (data.gaps?.length) {
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(8);
+            doc.setTextColor(...colors.warning);
+            doc.text("To Develop:", margin + 3, y);
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(...colors.muted);
+            const gapsText = data.gaps.slice(0, 2).join(" | ");
+            const gapLines = doc.splitTextToSize(gapsText, contentWidth - 30);
+            doc.text(gapLines[0], margin + 28, y);
+            y += 6;
+          }
+          
+          y += 6;
+        });
+        
+        y += 5;
+      }
+      
       // Low Hanging Fruit
       if (results.low_hanging_fruit?.length) {
         addSectionHeader("Quick Wins - Start Here", colors.accent);
