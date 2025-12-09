@@ -130,9 +130,9 @@ serve(async (req) => {
     });
   } catch (error: unknown) {
     console.error("Error in send-results-email:", error);
-    const message = error instanceof Error ? error.message : "Unknown error";
+    // Log detailed error but return generic message to client
     return new Response(
-      JSON.stringify({ error: message }),
+      JSON.stringify({ error: "Failed to send email. Please try again." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

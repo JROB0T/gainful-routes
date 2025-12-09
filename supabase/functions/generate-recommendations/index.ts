@@ -644,9 +644,18 @@ Generate 10-15 recommendations, 3-6 ai_centric_opportunities, 3-6 ai_proof_oppor
 
   } catch (error) {
     console.error("Error in generate-recommendations:", error);
-    return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : "Failed to generate recommendations" 
-    }), {
+    const errorMessage = error instanceof Error ? error.message : "Failed to generate recommendations";
+    
+    // Return safe error messages - only expose known safe user-facing errors
+    const safeUserErrors = [
+      "AI returned malformed JSON. Please try again.",
+      "AI response did not contain valid JSON. Please try again."
+    ];
+    const userMessage = safeUserErrors.includes(errorMessage) 
+      ? errorMessage 
+      : "Failed to generate recommendations. Please try again.";
+    
+    return new Response(JSON.stringify({ error: userMessage }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
