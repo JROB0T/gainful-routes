@@ -1,4 +1,5 @@
 import { Compass } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export function Footer() {
   const scrollToSection = (id: string) => {
@@ -60,20 +61,20 @@ export function Footer() {
           <div>
             <h4 className="font-semibold text-foreground mb-4">Legal</h4>
             <nav className="flex flex-col gap-2">
-              <a
-                href="#"
+              <Link
+                to="/privacy"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Privacy Policy
-              </a>
-              <a
-                href="#"
+              </Link>
+              <Link
+                to="/terms"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Terms of Service
-              </a>
+              </Link>
               <a
-                href="#"
+                href="mailto:support@careermovr.com"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Contact
@@ -82,9 +83,16 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-border pt-8">
+        {/* Disclaimer */}
+        <div className="border-t border-border pt-6 mb-6">
+          <p className="text-xs text-muted-foreground text-center max-w-3xl mx-auto">
+            <strong>Disclaimer:</strong> CareerMovr provides informational career and income recommendations generated using AI. CareerMovr LLC does not guarantee job placement, income outcomes, or accuracy of AI-generated content. Nothing on this site constitutes professional, legal, financial, or employment advice.
+          </p>
+        </div>
+
+        <div className="border-t border-border pt-6">
           <p className="text-center text-sm text-muted-foreground">
-            © {new Date().getFullYear()} CareerMovr. All rights reserved.
+            © {new Date().getFullYear()} CareerMovr LLC. All rights reserved.
           </p>
         </div>
       </div>
