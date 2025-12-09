@@ -255,11 +255,14 @@ serve(async (req) => {
 
     const wizardData = validation.sanitized!;
     const careerSignals = calculateCareerTrackSignals(wizardData);
-    const extractedProfile = input.extractedProfile;
+    const extractedProfile = input.extractedProfile as Record<string, unknown> | undefined;
     
     console.log("Generating recommendations for:", { 
       firstName: wizardData?.firstName,
       skillsCount: (wizardData?.skills as string[])?.length,
+      hasExtractedProfile: !!extractedProfile,
+      extractedSkillsCount: (extractedProfile?.skills as string[])?.length,
+      extractedDegrees: (extractedProfile?.degrees as string[])?.length,
       careerSignals
     });
 
@@ -268,28 +271,61 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    // Merge extracted profile data with wizard data for comprehensive context
+    const mergedSkills = Array.from(new Set([
+      ...((wizardData.skills as string[]) || []),
+      ...((extractedProfile?.skills as string[]) || [])
+    ]));
+    
+    const mergedSoftSkills = Array.from(new Set([
+      ...((wizardData.softSkills as string[]) || []),
+      ...((extractedProfile?.soft_skills as string[]) || [])
+    ]));
+    
+    const mergedDegrees = Array.from(new Set([
+      ...((wizardData.degrees as string[]) || []),
+      ...((extractedProfile?.degrees as string[]) || [])
+    ]));
+    
+    const mergedCertifications = Array.from(new Set([
+      ...((wizardData.certifications as string[]) || []),
+      ...((wizardData.credentials as string[]) || []),
+      ...((extractedProfile?.certifications as string[]) || [])
+    ]));
+    
+    const mergedLicenses = Array.from(new Set([
+      ...((wizardData.licenses as string[]) || []),
+      ...((extractedProfile?.licenses as string[]) || [])
+    ]));
+
+    const extractedWorkSummary = extractedProfile?.work_summary as string || '';
+    const profileQualityWarning = (!mergedSkills.length && !mergedDegrees.length && !extractedWorkSummary) 
+      ? "\n\nNOTE: Limited profile data was provided. Recommendations may be more general. For more personalized results, the user should provide a resume or LinkedIn profile."
+      : "";
+
     const userContext = `
 USER PROFILE:
 - Name: ${wizardData.firstName || "User"}
 - Location: ${wizardData.city || ""}, ${wizardData.state || ""}
 - Current Situation: ${wizardData.situation || "exploring options"}
 
-HARD SKILLS:
-${((wizardData.skills as string[]) || []).map((s: string) => `- ${s}`).join("\n") || "- Not specified"}
+HARD SKILLS (from resume/profile and questionnaire):
+${mergedSkills.map((s: string) => `- ${s}`).join("\n") || "- Not specified"}
 
-SOFT SKILLS:
-${((wizardData.softSkills as string[]) || []).map((s: string) => `- ${s}`).join("\n") || "- Not specified"}
+SOFT SKILLS (from resume/profile and questionnaire):
+${mergedSoftSkills.map((s: string) => `- ${s}`).join("\n") || "- Not specified"}
 
 INTERESTS:
-${((wizardData.interests as string[]) || []).map((i: string) => `- ${i}`).join("\n") || "- Not specified"}
+${((wizardData.interests as string[]) || (extractedProfile?.interests as string[]) || []).map((i: string) => `- ${i}`).join("\n") || "- Not specified"}
 
-CREDENTIALS:
-- Degrees: ${((wizardData.degrees as string[]) || []).join(", ") || "None"}
-- Certifications: ${((wizardData.certifications as string[]) || (wizardData.credentials as string[]) || []).join(", ") || "None"}
-- Licenses: ${((wizardData.licenses as string[]) || []).join(", ") || "None"}
+CREDENTIALS (from resume/profile and questionnaire):
+- Degrees: ${mergedDegrees.join(", ") || "None specified"}
+- Certifications: ${mergedCertifications.join(", ") || "None specified"}
+- Licenses: ${mergedLicenses.join(", ") || "None specified"}
 
-WORK SUMMARY:
-${wizardData.workSummary || "Not provided"}
+WORK SUMMARY (extracted from resume/profile):
+${extractedWorkSummary || wizardData.workSummary || "Not provided"}
+${profileQualityWarning}
 
 WORK TYPE PREFERENCES:
 - Preferred work types: ${((wizardData.preferredWorkTypes as string[]) || []).join(", ") || "not specified"}

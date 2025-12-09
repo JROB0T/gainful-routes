@@ -132,7 +132,7 @@ export function OpportunityTypeChart({ results }: { results: Results }) {
   });
 
   const data = Object.entries(typeCounts).map(([name, value]) => ({
-    name: name.charAt(0).toUpperCase() + name.slice(1).replace('-', ' '),
+    name: name.charAt(0).toUpperCase() + name.slice(1).replace(/-/g, ' '),
     value,
     color: TYPE_COLORS[name] || COLORS.primary,
   }));
@@ -143,33 +143,41 @@ export function OpportunityTypeChart({ results }: { results: Results }) {
         <Lightbulb className="w-5 h-5 text-amber-500" />
         Opportunity Types
       </h3>
-      <div className="h-48">
+      <div className="h-56">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
               data={data}
               cx="50%"
               cy="50%"
-              innerRadius={40}
-              outerRadius={70}
-              paddingAngle={2}
+              innerRadius={35}
+              outerRadius={60}
+              paddingAngle={3}
               dataKey="value"
-              label={({ name, value }) => `${name}: ${value}`}
-              labelLine={false}
+              label={false}
             >
               {data.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.color} />
               ))}
             </Pie>
-            <Tooltip />
+            <Tooltip 
+              formatter={(value: number, name: string) => [value, name]}
+              contentStyle={{ 
+                backgroundColor: 'hsl(var(--card))', 
+                border: '1px solid hsl(var(--border))',
+                borderRadius: '8px',
+                fontSize: '12px'
+              }}
+            />
           </PieChart>
         </ResponsiveContainer>
       </div>
-      <div className="mt-2 flex flex-wrap gap-2 justify-center">
+      <div className="mt-3 grid grid-cols-2 gap-2">
         {data.map((item, i) => (
-          <div key={i} className="flex items-center gap-1 text-xs">
-            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-            <span className="text-muted-foreground">{item.name}</span>
+          <div key={i} className="flex items-center gap-2 text-xs">
+            <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+            <span className="text-muted-foreground truncate">{item.name}</span>
+            <span className="text-foreground font-medium ml-auto">{item.value}</span>
           </div>
         ))}
       </div>

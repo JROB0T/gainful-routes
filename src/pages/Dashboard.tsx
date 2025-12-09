@@ -113,6 +113,27 @@ type AssessmentSummary = {
   expires_at: string | null;
 };
 
+// Transform career scorecard from AI format to component format
+function transformCareerScorecard(rawScorecard: any): CareerScorecardData | null {
+  if (!rawScorecard) return null;
+  
+  const transform = (data: any): CareerFamilyScore => ({
+    family: data?.family || '',
+    score: data?.match_percentage ?? data?.score ?? 0,
+    top_roles: data?.top_roles || [],
+    strengths: data?.strengths_for_track || data?.strengths || [],
+    gaps: data?.gaps_for_track || data?.gaps || [],
+    why_match: data?.explanation || data?.why_match || '',
+  });
+  
+  return {
+    technical: transform(rawScorecard.technical),
+    white_collar: transform(rawScorecard.white_collar),
+    blue_collar: transform(rawScorecard.blue_collar),
+    hybrid: transform(rawScorecard.hybrid),
+  };
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -722,10 +743,11 @@ export default function Dashboard() {
           hybrid: "Hybrid Technical-Trade",
         };
         
-        // Sort by score descending
-        const sortedFamilies = Object.entries(results.career_scorecard)
+        // Transform and sort by score descending (handle both formats)
+        const transformedScorecard = transformCareerScorecard(results.career_scorecard);
+        const sortedFamilies = transformedScorecard ? Object.entries(transformedScorecard)
           .filter(([_, data]) => data && typeof data.score === 'number')
-          .sort(([, a], [, b]) => (b as any).score - (a as any).score);
+          .sort(([, a], [, b]) => (b as any).score - (a as any).score) : [];
         
         sortedFamilies.forEach(([familyKey, data]: [string, any], index) => {
           checkPageBreak(50);
@@ -1672,7 +1694,7 @@ export default function Dashboard() {
 
             {/* Career Scorecard Section */}
             {activeSection === "scorecard" && (
-              <CareerScorecard scorecard={results.career_scorecard || null} />
+              <CareerScorecard scorecard={transformCareerScorecard(results.career_scorecard)} />
             )}
 
             {/* Analytics Section */}

@@ -293,12 +293,14 @@ export default function GetStarted() {
   const handleNext = () => {
     if (step < stepSequence.length) {
       setStep(step + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const handleBack = () => {
     if (step > 1) {
       setStep(step - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -340,23 +342,46 @@ export default function GetStarted() {
       const result = await response.json();
       const extracted = result.data;
 
+      // Store the full extracted profile for recommendations
+      const fullExtracted = {
+        skills: extracted.skills || [],
+        soft_skills: extracted.soft_skills || [],
+        interests: extracted.interests || [],
+        degrees: extracted.degrees || [],
+        certifications: extracted.certifications || [],
+        licenses: extracted.licenses || [],
+        work_summary: extracted.work_summary || '',
+        personality_indicators: extracted.personality_indicators || {},
+        assets: extracted.assets || {},
+        inferred_constraints: extracted.inferred_constraints || {},
+        teaser_summary: extracted.teaser_summary || extracted.teaserSummary || {},
+      };
+      
       setAiAnalysis({
-        skillsCount: extracted.teaserSummary?.skillsCount || extracted.skills?.length || 0,
-        alignedTypes: extracted.teaserSummary?.alignedTypes || [],
-        opportunityPaths: extracted.teaserSummary?.opportunityPaths || 0,
-        assetsFound: extracted.teaserSummary?.assetsFound || false,
-        headline: extracted.teaserSummary?.headline || "Your profile shows promising potential!",
+        ...fullExtracted,
+        skillsCount: extracted.teaser_summary?.skills_count || extracted.teaserSummary?.skillsCount || extracted.skills?.length || 0,
+        alignedTypes: extracted.teaser_summary?.aligned_types || extracted.teaserSummary?.alignedTypes || [],
+        opportunityPaths: extracted.teaser_summary?.opportunity_paths || extracted.teaserSummary?.opportunityPaths || 0,
+        assetsFound: (extracted.assets?.digital_assets?.length > 0 || extracted.assets?.physical_assets?.length > 0) || extracted.teaserSummary?.assetsFound || false,
+        headline: extracted.teaser_summary?.headline || extracted.teaserSummary?.headline || "Your profile shows promising potential!",
       });
+
+      // Combine all credentials
+      const allCredentials = [
+        ...(extracted.degrees || []),
+        ...(extracted.certifications || []),
+        ...(extracted.licenses || []),
+      ];
 
       updateData({
         skills: extracted.skills || [],
         interests: extracted.interests || [],
-        credentials: extracted.assets?.credentials || extracted.credentials || [],
-        workTypes: extracted.personalityIndicators?.workTypes || [],
-        structurePreference: extracted.personalityIndicators?.structurePreference || 3,
-        riskTolerance: extracted.personalityIndicators?.riskTolerance || 3,
-        digitalAssets: extracted.assets?.digitalAssets || [],
-        networkStrength: extracted.assets?.networkStrength || "",
+        credentials: allCredentials.length > 0 ? allCredentials : (extracted.assets?.credentials || extracted.credentials || []),
+        workTypes: extracted.personality_indicators?.work_style || extracted.personalityIndicators?.workTypes || [],
+        structurePreference: extracted.personality_indicators?.structure_preference || extracted.personalityIndicators?.structurePreference || 3,
+        riskTolerance: extracted.personality_indicators?.risk_tolerance || extracted.personalityIndicators?.riskTolerance || 3,
+        digitalAssets: extracted.assets?.digital_assets || extracted.assets?.digitalAssets || [],
+        networkStrength: extracted.assets?.network_strength || extracted.assets?.networkStrength || "",
       });
 
       toast.success("Profile analyzed successfully!");
