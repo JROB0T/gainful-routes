@@ -1,9 +1,27 @@
-import { Compass } from "lucide-react";
+import { useState } from "react";
+import { Compass, Copy, Check } from "lucide-react";
 import { Link } from "react-router-dom";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 export function Footer() {
+  const [contactOpen, setContactOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const supportEmail = "support@careermovr.com";
+
   const scrollToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleCopyEmail = async () => {
+    await navigator.clipboard.writeText(supportEmail);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -73,12 +91,12 @@ export function Footer() {
               >
                 Terms of Service
               </Link>
-              <a
-                href="mailto:support@careermovr.com"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              <button
+                onClick={() => setContactOpen(true)}
+                className="text-left text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Contact
-              </a>
+              </button>
             </nav>
           </div>
         </div>
@@ -96,6 +114,37 @@ export function Footer() {
           </p>
         </div>
       </div>
+      {/* Contact Dialog */}
+      <Dialog open={contactOpen} onOpenChange={setContactOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Contact Us</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-4">
+            <p className="text-muted-foreground text-center">
+              Send us an email at:
+            </p>
+            <div className="flex items-center gap-2 p-3 bg-secondary rounded-lg w-full justify-center">
+              <span className="font-mono text-foreground">{supportEmail}</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleCopyEmail}
+                className="h-8 w-8"
+              >
+                {copied ? (
+                  <Check className="h-4 w-4 text-green-500" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            {copied && (
+              <p className="text-sm text-green-500">Copied to clipboard!</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </footer>
   );
 }
