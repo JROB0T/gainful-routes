@@ -21,6 +21,36 @@ const testimonials = [
   },
 ];
 
+function TestimonialCard({ testimonial }: { testimonial: typeof testimonials[0] }) {
+  return (
+    <div className="relative p-6 rounded-2xl bg-card border border-border w-[280px] flex-shrink-0 md:w-auto">
+      <Quote className="w-8 h-8 text-primary/20 mb-4" />
+      
+      <div className="flex gap-1 mb-4">
+        {[...Array(5)].map((_, i) => (
+          <Star
+            key={i}
+            className="w-4 h-4 fill-warning text-warning"
+          />
+        ))}
+      </div>
+
+      <p className="text-foreground mb-6 leading-relaxed">
+        "{testimonial.quote}"
+      </p>
+
+      <div className="border-t border-border pt-4">
+        <p className="font-semibold text-foreground">
+          {testimonial.author}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {testimonial.role}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function Testimonials() {
   return (
     <section className="py-12 md:py-24 bg-secondary/30">
@@ -34,37 +64,19 @@ export function Testimonials() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+        {/* Mobile horizontal scroll */}
+        <div className="md:hidden overflow-x-auto scrollbar-hide pb-4 -mx-4 px-4">
+          <div className="flex gap-4" style={{ width: "max-content" }}>
+            {testimonials.map((testimonial, index) => (
+              <TestimonialCard key={index} testimonial={testimonial} />
+            ))}
+          </div>
+        </div>
+
+        {/* Desktop grid */}
+        <div className="hidden md:grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
           {testimonials.map((testimonial, index) => (
-            <div
-              key={index}
-              className="relative p-6 rounded-2xl bg-card border border-border"
-              style={{ maxWidth: "90%", margin: "0 auto" }}
-            >
-              <Quote className="w-8 h-8 text-primary/20 mb-4" />
-              
-              <div className="flex gap-1 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className="w-4 h-4 fill-warning text-warning"
-                  />
-                ))}
-              </div>
-
-              <p className="text-foreground mb-6 leading-relaxed">
-                "{testimonial.quote}"
-              </p>
-
-              <div className="border-t border-border pt-4">
-                <p className="font-semibold text-foreground">
-                  {testimonial.author}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {testimonial.role}
-                </p>
-              </div>
-            </div>
+            <TestimonialCard key={index} testimonial={testimonial} />
           ))}
         </div>
       </div>
