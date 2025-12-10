@@ -4,6 +4,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { CollapsibleSection } from "./CollapsibleSection";
 
 const faqs = [
   {
@@ -40,37 +41,35 @@ const faqs = [
 
 export function FAQ() {
   return (
-    <section id="faq" className="py-12 md:py-24 bg-background">
-      <div className="container px-4 md:px-6 max-w-7xl mx-auto">
-        <div className="text-center mb-12 md:mb-16">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-display font-bold mb-4">
-            Frequently Asked{" "}
-            <span className="text-gradient-primary">Questions</span>
-          </h2>
-          <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
-            Everything you need to know before getting started
-          </p>
-        </div>
-
-        <div className="max-w-3xl mx-auto">
-          <Accordion type="single" collapsible className="space-y-4">
-            {faqs.map((faq, index) => (
-              <AccordionItem
-                key={index}
-                value={`item-${index}`}
-                className="border border-border rounded-xl px-6 bg-card data-[state=open]:border-primary/30"
-              >
-                <AccordionTrigger className="text-left text-foreground hover:no-underline py-4 [&>svg]:text-primary">
-                  <span className="pr-4">{faq.question}</span>
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground pb-4 leading-relaxed">
-                  {faq.answer}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </div>
+    <CollapsibleSection
+      id="faq"
+      className="py-12 md:py-24 bg-background"
+      title={
+        <>
+          Frequently Asked{" "}
+          <span className="text-gradient-primary">Questions</span>
+        </>
+      }
+      subtitle="Everything you need to know before getting started"
+    >
+      <div className="max-w-3xl mx-auto">
+        <Accordion type="single" collapsible className="space-y-4">
+          {faqs.map((faq, index) => (
+            <AccordionItem
+              key={index}
+              value={`item-${index}`}
+              className="border border-border rounded-xl px-6 bg-card data-[state=open]:border-primary/30"
+            >
+              <AccordionTrigger className="text-left text-foreground hover:no-underline py-4 [&>svg]:text-primary">
+                <span className="pr-4">{faq.question}</span>
+              </AccordionTrigger>
+              <AccordionContent className="text-muted-foreground pb-4 leading-relaxed">
+                {faq.answer}
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
       </div>
-    </section>
+    </CollapsibleSection>
   );
 }
