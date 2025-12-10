@@ -6,7 +6,7 @@ export function Hero() {
   const navigate = useNavigate();
 
   return (
-    <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-gradient-hero pt-16">
+    <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-gradient-hero pt-28 md:pt-16">
       {/* Background decorations */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-10 w-64 h-64 bg-primary/8 rounded-full blur-3xl animate-float" />
@@ -31,7 +31,7 @@ export function Hero() {
             </p>
 
             {/* CTA Button */}
-            <div className="flex justify-center lg:justify-start mb-8 animate-fade-in animation-delay-400">
+            <div className="flex justify-center mb-8 animate-fade-in animation-delay-400">
               <Button
                 variant="hero"
                 size="xl"
