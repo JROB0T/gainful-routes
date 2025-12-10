@@ -475,6 +475,13 @@ export default function GetStarted() {
       return;
     }
 
+    // Get session for authenticated API call
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      toast.error("Authentication required. Please log in to continue.");
+      throw new Error("Authentication required");
+    }
+
     setIsAnalyzing(true);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 90000);
@@ -486,7 +493,7 @@ export default function GetStarted() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${sessionData.session.access_token}`,
         },
         body: JSON.stringify({
           resumeText: data.resumeText,
