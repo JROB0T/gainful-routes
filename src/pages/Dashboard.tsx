@@ -1126,7 +1126,7 @@ export default function Dashboard() {
   const NavItem = ({ id, label, icon: Icon, count }: { id: string; label: string; icon: any; count?: number }) => (
     <button
       onClick={() => setActiveSection(id)}
-      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
         activeSection === id
           ? "bg-primary text-primary-foreground"
           : "text-muted-foreground hover:bg-secondary"
@@ -1600,25 +1600,31 @@ export default function Dashboard() {
             {/* Main Content */}
             <main className="flex-1 min-w-0 overflow-x-hidden pb-8">
             {/* Mobile Nav */}
-            <div className="lg:hidden flex gap-2 overflow-x-auto pb-4 mb-4 scrollbar-hide -mx-4 px-4">
-              <NavItem id="overview" label="Overview" icon={Compass} />
-              <NavItem id="scorecard" label="Scorecard" icon={Award} />
-              <NavItem id="analytics" label="Analytics" icon={BarChart3} />
-              <NavItem id="recommendations" label="Recommendations" icon={Target} />
-              <NavItem id="ai-centric" label="AI Opps" icon={Brain} />
-              <NavItem id="ai-proof" label="AI-Proof" icon={Shield} />
-              <NavItem id="alternative-paths" label="Resources" icon={Lightbulb} />
-              <NavItem id="alternative-options" label="Alt Options" icon={Sparkles} />
-              <NavItem id="success-plan" label="Plan" icon={Star} />
-              {assessmentHistory.length > 1 && (
-                <button
-                  onClick={() => setShowHistory(!showHistory)}
-                  className="flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-secondary whitespace-nowrap"
-                >
-                  <Calendar className="w-4 h-4" />
-                  History
-                </button>
-              )}
+            <div className="lg:hidden relative">
+              <div className="flex gap-2 overflow-x-auto pb-4 mb-4 scrollbar-hide -mx-4 px-4">
+                <NavItem id="overview" label="Overview" icon={Compass} />
+                <NavItem id="scorecard" label="Scorecard" icon={Award} />
+                <NavItem id="analytics" label="Analytics" icon={BarChart3} />
+                <NavItem id="recommendations" label="Recommendations" icon={Target} />
+                <NavItem id="ai-centric" label="AI Opps" icon={Brain} />
+                <NavItem id="ai-proof" label="AI-Proof" icon={Shield} />
+                <NavItem id="alternative-paths" label="Resources" icon={Lightbulb} />
+                <NavItem id="alternative-options" label="Alt Options" icon={Sparkles} />
+                <NavItem id="success-plan" label="Plan" icon={Star} />
+                {assessmentHistory.length > 1 && (
+                  <button
+                    onClick={() => setShowHistory(!showHistory)}
+                    className="flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-secondary whitespace-nowrap"
+                  >
+                    <Calendar className="w-4 h-4" />
+                    History
+                  </button>
+                )}
+              </div>
+              {/* Scroll indicator */}
+              <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none flex items-center justify-end pr-1">
+                <ChevronRight className="w-5 h-5 text-muted-foreground animate-pulse" />
+              </div>
             </div>
             
             {/* Mobile Current Assessment Info */}

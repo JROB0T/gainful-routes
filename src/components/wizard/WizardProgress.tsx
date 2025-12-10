@@ -38,7 +38,7 @@ export function WizardProgress({ currentStep, totalSteps }: WizardProgressProps)
                 {isCompleted ? <Check className="w-5 h-5" /> : stepNumber}
               </div>
               <span className={`
-                text-xs mt-2 font-medium
+                text-xs mt-2 font-medium text-center whitespace-nowrap
                 ${isCurrent ? "text-foreground" : "text-muted-foreground"}
               `}>
                 {step.label}
