@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,6 +10,55 @@ const corsHeaders = {
 const MAX_STRING_LENGTH = 500;
 const MAX_ARRAY_LENGTH = 50;
 const MAX_ARRAY_ITEM_LENGTH = 200;
+
+// Rate limiting constants
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 3; // Max 3 recommendation requests per minute per user (more restrictive due to cost)
+
+// In-memory rate limit store (per edge function instance)
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+
+function checkRateLimit(userId: string): { allowed: boolean; retryAfter?: number } {
+  const now = Date.now();
+  const userLimit = rateLimitStore.get(userId);
+  
+  if (!userLimit || now > userLimit.resetTime) {
+    // Reset or initialize
+    rateLimitStore.set(userId, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+    return { allowed: true };
+  }
+  
+  if (userLimit.count >= RATE_LIMIT_MAX_REQUESTS) {
+    const retryAfter = Math.ceil((userLimit.resetTime - now) / 1000);
+    return { allowed: false, retryAfter };
+  }
+  
+  userLimit.count++;
+  return { allowed: true };
+}
+
+function getUserIdFromJwt(authHeader: string | null): string | null {
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+  
+  try {
+    const token = authHeader.split(' ')[1];
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.sub || null;
+  } catch {
+    return null;
+  }
+}
+
+// Audit logging helper
+function auditLog(event: string, data: Record<string, unknown>) {
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    function: 'generate-recommendations',
+    event,
+    ...data,
+  };
+  console.log('[AUDIT]', JSON.stringify(logEntry));
+}
 
 // Validate string field
 function validateString(value: unknown, maxLength: number = MAX_STRING_LENGTH): string {
@@ -224,11 +274,42 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Extract user ID from JWT for rate limiting and audit
+  const authHeader = req.headers.get('authorization');
+  const userId = getUserIdFromJwt(authHeader);
+  
+  if (!userId) {
+    auditLog('auth_failed', { reason: 'missing_or_invalid_jwt' });
+    return new Response(JSON.stringify({ error: "Authentication required" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // Check rate limit
+  const rateCheck = checkRateLimit(userId);
+  if (!rateCheck.allowed) {
+    auditLog('rate_limited', { userId, retryAfter: rateCheck.retryAfter });
+    return new Response(JSON.stringify({ 
+      error: `Rate limit exceeded. Please try again in ${rateCheck.retryAfter} seconds.` 
+    }), {
+      status: 429,
+      headers: { 
+        ...corsHeaders, 
+        "Content-Type": "application/json",
+        "Retry-After": String(rateCheck.retryAfter)
+      },
+    });
+  }
+
+  auditLog('request_started', { userId });
+
   try {
     let rawInput: unknown;
     try {
       rawInput = await req.json();
     } catch {
+      auditLog('invalid_json', { userId });
       return new Response(JSON.stringify({ error: "Invalid JSON in request body" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -236,6 +317,7 @@ serve(async (req) => {
     }
 
     if (!rawInput || typeof rawInput !== 'object') {
+      auditLog('invalid_request_body', { userId });
       return new Response(JSON.stringify({ error: "Request body must be an object" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -246,6 +328,7 @@ serve(async (req) => {
     
     const validation = validateWizardData(input.wizardData);
     if (!validation.valid) {
+      auditLog('validation_failed', { userId, error: validation.error });
       console.log("Input validation failed:", validation.error);
       return new Response(JSON.stringify({ error: validation.error }), {
         status: 400,
@@ -256,6 +339,15 @@ serve(async (req) => {
     const wizardData = validation.sanitized!;
     const careerSignals = calculateCareerTrackSignals(wizardData);
     const extractedProfile = input.extractedProfile as Record<string, unknown> | undefined;
+    
+    auditLog('processing', { 
+      userId,
+      firstName: wizardData?.firstName,
+      state: wizardData?.state,
+      skillsCount: (wizardData?.skills as string[])?.length || 0,
+      hasExtractedProfile: !!extractedProfile,
+      careerSignals,
+    });
     
     console.log("Generating recommendations for:", { 
       firstName: wizardData?.firstName,
@@ -630,6 +722,22 @@ Generate 10-15 recommendations, 3-6 ai_centric_opportunities, 3-6 ai_proof_oppor
     // Add pre-calculated career signals to the response
     recommendations.career_signals = careerSignals;
     
+    // Audit log successful generation
+    const generationDuration = Date.now() - startTime;
+    auditLog('generation_success', {
+      userId,
+      durationMs: generationDuration,
+      hasCareerScorecard: !!recommendations.career_scorecard,
+      recommendationsCount: recommendations.recommendations?.length || 0,
+      aiCentricCount: recommendations.ai_centric_opportunities?.length || 0,
+      aiProofCount: recommendations.ai_proof_opportunities?.length || 0,
+      alternativePathsCount: recommendations.alternative_paths?.length || 0,
+      alternativeOptionsCount: recommendations.alternative_options?.length || 0,
+      hasSuccessPlan: !!recommendations.success_plan,
+      primaryCareerTrack: recommendations.profile_summary?.primary_career_track,
+      careerSignals,
+    });
+    
     console.log("Generated:", {
       careerScorecard: !!recommendations.career_scorecard,
       recommendations: recommendations.recommendations?.length,
@@ -647,6 +755,12 @@ Generate 10-15 recommendations, 3-6 ai_centric_opportunities, 3-6 ai_proof_oppor
   } catch (error) {
     console.error("Error in generate-recommendations:", error);
     const errorMessage = error instanceof Error ? error.message : "Failed to generate recommendations";
+    
+    // Audit log the error
+    auditLog('generation_error', { 
+      userId: userId || 'unknown',
+      errorType: errorMessage,
+    });
     
     // Return safe error messages - only expose known safe user-facing errors
     const safeUserErrors = [

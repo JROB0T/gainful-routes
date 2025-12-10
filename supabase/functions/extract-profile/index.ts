@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,6 +8,55 @@ const corsHeaders = {
 
 // Input validation constants
 const MAX_RESUME_LENGTH = 50000;
+
+// Rate limiting constants
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 5; // Max 5 requests per minute per user
+
+// In-memory rate limit store (per edge function instance)
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+
+function checkRateLimit(userId: string): { allowed: boolean; retryAfter?: number } {
+  const now = Date.now();
+  const userLimit = rateLimitStore.get(userId);
+  
+  if (!userLimit || now > userLimit.resetTime) {
+    // Reset or initialize
+    rateLimitStore.set(userId, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+    return { allowed: true };
+  }
+  
+  if (userLimit.count >= RATE_LIMIT_MAX_REQUESTS) {
+    const retryAfter = Math.ceil((userLimit.resetTime - now) / 1000);
+    return { allowed: false, retryAfter };
+  }
+  
+  userLimit.count++;
+  return { allowed: true };
+}
+
+function getUserIdFromJwt(authHeader: string | null): string | null {
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+  
+  try {
+    const token = authHeader.split(' ')[1];
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.sub || null;
+  } catch {
+    return null;
+  }
+}
+
+// Audit logging helper
+function auditLog(event: string, data: Record<string, unknown>) {
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    function: 'extract-profile',
+    event,
+    ...data,
+  };
+  console.log('[AUDIT]', JSON.stringify(logEntry));
+}
 
 function validateInput(data: unknown): { valid: boolean; error?: string; sanitized?: Record<string, unknown> } {
   if (!data || typeof data !== 'object') {
@@ -42,6 +92,36 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Extract user ID from JWT for rate limiting and audit
+  const authHeader = req.headers.get('authorization');
+  const userId = getUserIdFromJwt(authHeader);
+  
+  if (!userId) {
+    auditLog('auth_failed', { reason: 'missing_or_invalid_jwt' });
+    return new Response(JSON.stringify({ error: "Authentication required" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // Check rate limit
+  const rateCheck = checkRateLimit(userId);
+  if (!rateCheck.allowed) {
+    auditLog('rate_limited', { userId, retryAfter: rateCheck.retryAfter });
+    return new Response(JSON.stringify({ 
+      error: `Rate limit exceeded. Please try again in ${rateCheck.retryAfter} seconds.` 
+    }), {
+      status: 429,
+      headers: { 
+        ...corsHeaders, 
+        "Content-Type": "application/json",
+        "Retry-After": String(rateCheck.retryAfter)
+      },
+    });
+  }
+
+  auditLog('request_started', { userId });
 
   try {
     let rawInput: unknown;
@@ -291,12 +371,27 @@ If information is sparse, make reasonable inferences based on available context.
     let extractedData;
     try {
       extractedData = JSON.parse(toolCall.function.arguments);
+      
+      // Audit log successful extraction
+      auditLog('extraction_success', {
+        userId,
+        skillsCount: extractedData.skills?.length || 0,
+        softSkillsCount: extractedData.soft_skills?.length || 0,
+        degreesCount: extractedData.degrees?.length || 0,
+        certificationsCount: extractedData.certifications?.length || 0,
+        licensesCount: extractedData.licenses?.length || 0,
+        hasWorkSummary: !!extractedData.work_summary,
+        experienceLevel: extractedData.inferred_constraints?.experience_level,
+        careerStage: extractedData.inferred_constraints?.career_stage,
+      });
+      
       console.log("Extracted profile data:", {
         skillsCount: extractedData.skills?.length,
         softSkillsCount: extractedData.soft_skills?.length,
         degreesCount: extractedData.degrees?.length
       });
     } catch (parseError) {
+      auditLog('extraction_parse_error', { userId, error: 'Failed to parse tool call arguments' });
       console.error("Failed to parse tool call arguments:", toolCall.function.arguments);
       throw new Error("Failed to parse AI analysis results");
     }
@@ -307,6 +402,12 @@ If information is sparse, make reasonable inferences based on available context.
   } catch (error) {
     console.error("Error in extract-profile:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    
+    // Audit log the error
+    auditLog('extraction_error', { 
+      userId: userId || 'unknown',
+      errorType: errorMessage,
+    });
     
     // Return safe error messages - only expose known safe errors
     const safeErrors = [
