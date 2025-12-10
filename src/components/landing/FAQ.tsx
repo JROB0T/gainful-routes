@@ -8,6 +8,11 @@ import { CollapsibleSection } from "./CollapsibleSection";
 
 const faqs = [
   {
+    question: "Why does CareerMovr work?",
+    answer:
+      "CareerMovr uses AI-powered pattern matching personalized to your background — not a generic personality quiz. You get actionable next steps and clarity in minutes, based on your actual skills, experience, and goals.",
+  },
+  {
     question: "How long does the assessment take?",
     answer:
       "The assessment takes about 3-5 minutes to complete. You can paste your resume or describe your experience, and we'll auto-fill much of your profile, making it even faster.",
