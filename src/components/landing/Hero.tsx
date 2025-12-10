@@ -31,12 +31,12 @@ export function Hero() {
             </p>
 
             {/* CTA Button */}
-            <div className="flex justify-center mb-8 animate-fade-in animation-delay-400">
+            <div className="flex justify-center lg:justify-start mb-8 animate-fade-in animation-delay-400">
               <Button
                 variant="hero"
                 size="xl"
                 onClick={() => navigate("/get-started")}
-                className="group w-full sm:w-auto min-h-[48px]"
+                className="group w-full sm:w-auto min-h-[48px] mx-auto sm:mx-0"
               >
                 Take the Free Career Assessment
                 <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />

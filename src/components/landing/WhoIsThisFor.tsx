@@ -1,4 +1,5 @@
 import { RefreshCw, GraduationCap, Briefcase, Compass } from "lucide-react";
+import { CollapsibleSection } from "./CollapsibleSection";
 
 const personas = [
   {
@@ -25,37 +26,34 @@ const personas = [
 
 export function WhoIsThisFor() {
   return (
-    <section className="py-12 md:py-24 bg-secondary/30">
-      <div className="container px-4 md:px-6 max-w-7xl mx-auto">
-        <div className="text-center mb-12 md:mb-16">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-display font-bold mb-4">
-            Designed for Anyone Seeking{" "}
-            <span className="text-gradient-accent">Career Clarity</span>
-          </h2>
-          <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
-            Whether you're starting out or starting over
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-5xl mx-auto">
-          {personas.map((persona, index) => (
-            <div
-              key={index}
-              className="flex flex-col items-center text-center p-6 rounded-2xl bg-card border border-border hover:border-primary/30 transition-all duration-300"
-            >
-              <div className="w-12 h-12 rounded-xl bg-gradient-primary text-primary-foreground flex items-center justify-center mb-4">
-                <persona.icon className="w-6 h-6" />
-              </div>
-              <h3 className="text-base font-display font-bold mb-2 text-foreground">
-                {persona.title}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {persona.description}
-              </p>
+    <CollapsibleSection
+      className="py-12 md:py-24 bg-secondary/30"
+      title={
+        <>
+          Designed for Anyone Seeking{" "}
+          <span className="text-gradient-accent">Career Clarity</span>
+        </>
+      }
+      subtitle="Whether you're starting out or starting over"
+    >
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-5xl mx-auto">
+        {personas.map((persona, index) => (
+          <div
+            key={index}
+            className="flex flex-col items-center text-center p-6 rounded-2xl bg-card border border-border hover:border-primary/30 transition-all duration-300"
+          >
+            <div className="w-12 h-12 rounded-xl bg-gradient-primary text-primary-foreground flex items-center justify-center mb-4">
+              <persona.icon className="w-6 h-6" />
             </div>
-          ))}
-        </div>
+            <h3 className="text-base font-display font-bold mb-2 text-foreground">
+              {persona.title}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {persona.description}
+            </p>
+          </div>
+        ))}
       </div>
-    </section>
+    </CollapsibleSection>
   );
 }
