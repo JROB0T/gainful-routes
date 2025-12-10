@@ -34,6 +34,13 @@ const Terms = () => {
             <strong>Operator:</strong> CareerMovr is operated by CareerMovr LLC.
           </p>
 
+          {/* Disclaimer */}
+          <div className="bg-secondary/50 border border-border rounded-lg p-4 my-6">
+            <p className="text-sm text-muted-foreground">
+              <strong className="text-foreground">Disclaimer:</strong> CareerMovr provides informational career and income recommendations generated using AI. CareerMovr LLC does not guarantee job placement, income outcomes, or accuracy of AI-generated content. Nothing on this site constitutes professional, legal, financial, or employment advice.
+            </p>
+          </div>
+
           <h2 className="text-xl font-semibold text-foreground mt-8 mb-4">1. Acceptance of Terms</h2>
           <p className="text-muted-foreground leading-relaxed">
             By accessing or using the Service, you agree to these Terms of Service ("Terms"). If you do not agree, do not use CareerMovr.

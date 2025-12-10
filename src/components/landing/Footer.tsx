@@ -44,68 +44,62 @@ export function Footer() {
             </p>
           </div>
 
-          {/* Quick Links */}
-          <div>
-            <h4 className="font-semibold text-foreground mb-4">Quick Links</h4>
-            <nav className="flex flex-col gap-2">
-              <button
-                onClick={() => scrollToSection("how-it-works")}
-                className="text-left text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                How It Works
-              </button>
-              <button
-                onClick={() => scrollToSection("what-you-get")}
-                className="text-left text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Features
-              </button>
-              <button
-                onClick={() => scrollToSection("pricing")}
-                className="text-left text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Pricing
-              </button>
-              <button
-                onClick={() => scrollToSection("faq")}
-                className="text-left text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                FAQ
-              </button>
-            </nav>
-          </div>
+          {/* Quick Links & Legal - side by side on mobile */}
+          <div className="grid grid-cols-2 md:grid-cols-1 gap-8 md:gap-0">
+            <div>
+              <h4 className="font-semibold text-foreground mb-4">Quick Links</h4>
+              <nav className="flex flex-col gap-2">
+                <button
+                  onClick={() => scrollToSection("how-it-works")}
+                  className="text-left text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  How It Works
+                </button>
+                <button
+                  onClick={() => scrollToSection("what-you-get")}
+                  className="text-left text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Features
+                </button>
+                <button
+                  onClick={() => scrollToSection("pricing")}
+                  className="text-left text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Pricing
+                </button>
+                <button
+                  onClick={() => scrollToSection("faq")}
+                  className="text-left text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  FAQ
+                </button>
+              </nav>
+            </div>
 
-          {/* Legal */}
-          <div>
-            <h4 className="font-semibold text-foreground mb-4">Legal</h4>
-            <nav className="flex flex-col gap-2">
-              <Link
-                to="/privacy"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Privacy Policy
-              </Link>
-              <Link
-                to="/terms"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Terms of Service
-              </Link>
-              <button
-                onClick={() => setContactOpen(true)}
-                className="text-left text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Contact
-              </button>
-            </nav>
+            <div className="md:mt-8">
+              <h4 className="font-semibold text-foreground mb-4">Legal</h4>
+              <nav className="flex flex-col gap-2">
+                <Link
+                  to="/privacy"
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Privacy Policy
+                </Link>
+                <Link
+                  to="/terms"
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Terms of Service
+                </Link>
+                <button
+                  onClick={() => setContactOpen(true)}
+                  className="text-left text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Contact
+                </button>
+              </nav>
+            </div>
           </div>
-        </div>
-
-        {/* Disclaimer */}
-        <div className="border-t border-border pt-6 mb-6">
-          <p className="text-xs text-muted-foreground text-center max-w-3xl mx-auto">
-            <strong>Disclaimer:</strong> CareerMovr provides informational career and income recommendations generated using AI. CareerMovr LLC does not guarantee job placement, income outcomes, or accuracy of AI-generated content. Nothing on this site constitutes professional, legal, financial, or employment advice.
-          </p>
         </div>
 
         <div className="border-t border-border pt-6">
