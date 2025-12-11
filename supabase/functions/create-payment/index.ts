@@ -69,6 +69,7 @@ serve(async (req) => {
       ],
       mode: "payment",
       automatic_tax: { enabled: true },
+      allow_promotion_codes: true,
       success_url: `${origin}/get-started?payment=success`,
       cancel_url: `${origin}/get-started?payment=cancelled`,
       metadata: {
