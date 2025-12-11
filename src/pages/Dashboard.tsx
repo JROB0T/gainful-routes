@@ -194,89 +194,45 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          navigate("/auth");
-          return;
-        }
-        setUser(session.user);
-        
-        // Fetch all assessments for history
-        const { data: allAssessments, error: historyError } = await supabase
-          .from('assessment_results')
-          .select('id, created_at, status, expires_at')
-          .eq('user_id', session.user.id)
-          .order('created_at', { ascending: false });
-        
-        if (!historyError && allAssessments) {
-          setAssessmentHistory(allAssessments as AssessmentSummary[]);
-        }
-        
-        // Check for assessment ID in URL params
-        const urlAssessmentId = searchParams.get('id');
-        const isPending = searchParams.get('pending') === 'true';
-        
-        // First try sessionStorage for immediate results
-        const stored = sessionStorage.getItem("careermovr_results");
-        if (stored && !isPending && !urlAssessmentId) {
-          try {
-            setResults(JSON.parse(stored));
-            setAssessmentStatus('completed');
-          } catch (e) {
-            console.error("Failed to parse results:", e);
-          }
-        }
-        
-        // If we have an assessment ID, fetch from database
-        if (urlAssessmentId) {
-          setAssessmentId(urlAssessmentId);
-          await fetchAssessmentResults(urlAssessmentId);
-        } else if (allAssessments && allAssessments.length > 0) {
-          // Load the most recent assessment
-          const mostRecent = allAssessments[0];
-          setAssessmentId(mostRecent.id);
-          await fetchAssessmentResults(mostRecent.id);
-        }
-      } catch (error) {
-        console.error("Error during auth check:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    let isMounted = true;
     
     const fetchAssessmentResults = async (id: string) => {
-      const { data: assessment, error } = await supabase
-        .from('assessment_results')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
-      
-      if (error || !assessment) {
-        console.error("Failed to fetch assessment:", error);
-        return;
-      }
-      
-      setWizardData(assessment.wizard_data);
-      
-      if (assessment.status === 'completed' && assessment.recommendations) {
-        setResults(assessment.recommendations as unknown as Results);
-        setAssessmentStatus('completed');
+      try {
+        const { data: assessment, error } = await supabase
+          .from('assessment_results')
+          .select('*')
+          .eq('id', id)
+          .maybeSingle();
         
-        // Calculate days left
-        if (assessment.expires_at) {
-          const expiresAt = new Date(assessment.expires_at);
-          const now = new Date();
-          const diffTime = expiresAt.getTime() - now.getTime();
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          setDaysLeft(Math.max(0, diffDays));
+        if (!isMounted) return;
+        
+        if (error || !assessment) {
+          console.error("Failed to fetch assessment:", error);
+          return;
         }
-      } else if (assessment.status === 'processing') {
-        setAssessmentStatus('processing');
-        subscribeToAssessment(id);
-      } else if (assessment.status === 'failed') {
-        setAssessmentStatus('failed');
+        
+        setWizardData(assessment.wizard_data);
+        
+        if (assessment.status === 'completed' && assessment.recommendations) {
+          setResults(assessment.recommendations as unknown as Results);
+          setAssessmentStatus('completed');
+          
+          // Calculate days left
+          if (assessment.expires_at) {
+            const expiresAt = new Date(assessment.expires_at);
+            const now = new Date();
+            const diffTime = expiresAt.getTime() - now.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            setDaysLeft(Math.max(0, diffDays));
+          }
+        } else if (assessment.status === 'processing') {
+          setAssessmentStatus('processing');
+          subscribeToAssessment(id);
+        } else if (assessment.status === 'failed') {
+          setAssessmentStatus('failed');
+        }
+      } catch (err) {
+        console.error("Error fetching assessment:", err);
       }
     };
     
@@ -313,17 +269,95 @@ export default function Dashboard() {
       };
     };
     
+    const checkAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          navigate("/auth");
+          return;
+        }
+        
+        if (!isMounted) return;
+        setUser(session.user);
+        
+        // Set loading false early so UI shows faster
+        setIsLoading(false);
+        
+        // Fetch assessments in background - don't block render
+        const fetchHistory = async () => {
+          try {
+            const { data: allAssessments, error: historyError } = await supabase
+              .from('assessment_results')
+              .select('id, created_at, status, expires_at')
+              .eq('user_id', session.user.id)
+              .order('created_at', { ascending: false });
+            
+            if (!isMounted) return;
+            
+            if (!historyError && allAssessments) {
+              setAssessmentHistory(allAssessments as AssessmentSummary[]);
+              
+              // Check for assessment ID in URL params
+              const urlAssessmentId = searchParams.get('id');
+              
+              // If we have an assessment ID, fetch from database
+              if (urlAssessmentId) {
+                setAssessmentId(urlAssessmentId);
+                await fetchAssessmentResults(urlAssessmentId);
+              } else if (allAssessments.length > 0) {
+                // Load the most recent assessment
+                const mostRecent = allAssessments[0];
+                setAssessmentId(mostRecent.id);
+                await fetchAssessmentResults(mostRecent.id);
+              }
+            }
+          } catch (err) {
+            console.error("Error fetching history:", err);
+          }
+        };
+        
+        // First try sessionStorage for immediate results
+        const stored = sessionStorage.getItem("careermovr_results");
+        const isPending = searchParams.get('pending') === 'true';
+        const urlAssessmentId = searchParams.get('id');
+        
+        if (stored && !isPending && !urlAssessmentId) {
+          try {
+            setResults(JSON.parse(stored));
+            setAssessmentStatus('completed');
+          } catch (e) {
+            console.error("Failed to parse results:", e);
+          }
+        }
+        
+        // Fetch history in background
+        fetchHistory();
+        
+      } catch (error) {
+        console.error("Error during auth check:", error);
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+    
     checkAuth();
 
+    // CRITICAL: Don't navigate inside onAuthStateChange on initial load
+    // This causes race conditions on mobile
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!session) {
+      // Only handle sign out event synchronously
+      if (event === 'SIGNED_OUT') {
         navigate("/auth");
-      } else {
+      } else if (session) {
         setUser(session.user);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, [navigate, searchParams]);
 
   const handleLogout = async () => {

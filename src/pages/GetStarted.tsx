@@ -364,35 +364,57 @@ export default function GetStarted() {
     }
   }, [searchParams, setSearchParams]);
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsLoggedIn(!!session);
+  // Helper function to check payment with timeout
+  const checkPaymentStatus = async (userId: string) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    
+    try {
+      const { data: paymentData, error } = await supabase.functions.invoke("check-payment", {
+        body: {},
+      });
+      clearTimeout(timeoutId);
       
-      if (session?.user) {
-        const userName = session.user.user_metadata?.full_name || 
-                         session.user.user_metadata?.name ||
-                         session.user.email?.split('@')[0] || '';
-        setData(prev => ({ ...prev, firstName: userName }));
-        
-        try {
-          const { data: paymentData, error } = await supabase.functions.invoke("check-payment");
-          if (!error && paymentData?.hasPaid) {
-            setHasPaid(true);
-            if (paymentData.expiryDate) {
-              setExpiryDate(paymentData.expiryDate);
-            }
-          }
-        } catch (err) {
-          console.error("Failed to check payment status:", err);
+      if (!error && paymentData?.hasPaid) {
+        setHasPaid(true);
+        if (paymentData.expiryDate) {
+          setExpiryDate(paymentData.expiryDate);
         }
       }
-      
-      setIsLoading(false);
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      // Don't show error toast for timeout - user can still proceed
+      console.error("Failed to check payment status:", err);
+    }
+  };
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setIsLoggedIn(!!session);
+        
+        if (session?.user) {
+          const userName = session.user.user_metadata?.full_name || 
+                           session.user.user_metadata?.name ||
+                           session.user.email?.split('@')[0] || '';
+          setData(prev => ({ ...prev, firstName: userName }));
+          
+          // Check payment in background - don't block UI
+          checkPaymentStatus(session.user.id);
+        }
+      } catch (err) {
+        console.error("Auth check error:", err);
+      } finally {
+        setIsLoading(false);
+      }
     };
     checkAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // CRITICAL: Don't make async calls directly in onAuthStateChange callback
+    // This causes deadlocks on mobile. Use setTimeout(0) to defer.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // Synchronous state updates only
       setIsLoggedIn(!!session);
       
       if (session?.user) {
@@ -401,17 +423,10 @@ export default function GetStarted() {
                          session.user.email?.split('@')[0] || '';
         setData(prev => ({ ...prev, firstName: userName }));
         
-        try {
-          const { data: paymentData, error } = await supabase.functions.invoke("check-payment");
-          if (!error && paymentData?.hasPaid) {
-            setHasPaid(true);
-            if (paymentData.expiryDate) {
-              setExpiryDate(paymentData.expiryDate);
-            }
-          }
-        } catch (err) {
-          console.error("Failed to check payment status:", err);
-        }
+        // Defer Supabase calls to prevent deadlock
+        setTimeout(() => {
+          checkPaymentStatus(session.user.id);
+        }, 0);
       } else {
         setHasPaid(false);
         setExpiryDate(null);

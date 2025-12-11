@@ -105,12 +105,17 @@ export default function Auth() {
     
     setIsLoading(true);
 
+    // Add timeout for mobile connections
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
     try {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password,
         });
+        clearTimeout(timeoutId);
         if (error) throw error;
         toast.success("Welcome back!");
         navigate("/dashboard");
@@ -125,12 +130,16 @@ export default function Auth() {
             },
           },
         });
+        clearTimeout(timeoutId);
         if (error) throw error;
         toast.success("Account created! Please check your email to confirm.");
         navigate("/get-started");
       }
     } catch (error: any) {
-      const message = error?.message || "An error occurred";
+      clearTimeout(timeoutId);
+      const message = error?.name === 'AbortError' 
+        ? "Request timed out. Please check your connection and try again."
+        : (error?.message || "An error occurred");
       toast.error(mapAuthError(message));
     } finally {
       setIsLoading(false);
