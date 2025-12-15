@@ -105,40 +105,58 @@ export default function Auth() {
     
     setIsLoading(true);
 
-    // Add timeout for mobile connections
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    // Helper for auth with retry on timeout
+    const authWithRetry = async (retryCount = 0): Promise<any> => {
+      const controller = new AbortController();
+      // Progressive timeout: 15s first, 25s retry
+      const timeout = retryCount === 0 ? 15000 : 25000;
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+      try {
+        let result;
+        if (isLogin) {
+          result = await supabase.auth.signInWithPassword({
+            email: email.trim(),
+            password,
+          });
+        } else {
+          result = await supabase.auth.signUp({
+            email: email.trim(),
+            password,
+            options: {
+              emailRedirectTo: `${window.location.origin}/`,
+              data: {
+                full_name: name.trim(),
+              },
+            },
+          });
+        }
+        clearTimeout(timeoutId);
+        return result;
+      } catch (err: any) {
+        clearTimeout(timeoutId);
+        if (err?.name === 'AbortError' && retryCount < 1) {
+          toast.info("Connection slow, retrying...", { duration: 3000 });
+          return authWithRetry(retryCount + 1);
+        }
+        throw err;
+      }
+    };
 
     try {
+      const { error } = await authWithRetry();
+      if (error) throw error;
+      
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        });
-        clearTimeout(timeoutId);
-        if (error) throw error;
         toast.success("Welcome back!");
         navigate("/dashboard");
       } else {
-        const { error } = await supabase.auth.signUp({
-          email: email.trim(),
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
-            data: {
-              full_name: name.trim(),
-            },
-          },
-        });
-        clearTimeout(timeoutId);
-        if (error) throw error;
         toast.success("Account created! Please check your email to confirm.");
         navigate("/get-started");
       }
     } catch (error: any) {
-      clearTimeout(timeoutId);
       const message = error?.name === 'AbortError' 
-        ? "Request timed out. Please check your connection and try again."
+        ? "Connection timed out. Please check your network and try again."
         : (error?.message || "An error occurred");
       toast.error(mapAuthError(message));
     } finally {
