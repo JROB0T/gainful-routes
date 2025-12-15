@@ -151,58 +151,77 @@ export default function Dashboard() {
   const [wizardData, setWizardData] = useState<any>(null);
 
   const loadAssessment = async (id: string) => {
-    setIsLoading(true);
-    const { data: assessment, error } = await supabase
-      .from('assessment_results')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
+    // Don't block UI - show skeleton state
+    const timeoutPromise = new Promise<null>((_, reject) => 
+      setTimeout(() => reject(new Error('timeout')), 15000)
+    );
     
-    if (error || !assessment) {
-      console.error("Failed to fetch assessment:", error);
-      setIsLoading(false);
-      return;
-    }
-    
-    setAssessmentId(assessment.id);
-    setWizardData(assessment.wizard_data);
-    
-    if (assessment.status === 'completed' && assessment.recommendations) {
-      setResults(assessment.recommendations as unknown as Results);
-      setAssessmentStatus('completed');
+    try {
+      const { data: assessment, error } = await Promise.race([
+        supabase
+          .from('assessment_results')
+          .select('*')
+          .eq('id', id)
+          .maybeSingle(),
+        timeoutPromise.then(() => ({ data: null, error: new Error('timeout') }))
+      ]) as any;
       
-      // Calculate days left
-      if (assessment.expires_at) {
-        const expiresAt = new Date(assessment.expires_at);
-        const now = new Date();
-        const diffTime = expiresAt.getTime() - now.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        setDaysLeft(Math.max(0, diffDays));
+      if (error || !assessment) {
+        console.error("Failed to fetch assessment:", error);
+        toast.error("Failed to load assessment. Please refresh.");
+        return;
       }
-    } else if (assessment.status === 'processing') {
-      setAssessmentStatus('processing');
-      setResults(null);
-    } else if (assessment.status === 'failed') {
-      setAssessmentStatus('failed');
-      setResults(null);
+      
+      setAssessmentId(assessment.id);
+      setWizardData(assessment.wizard_data);
+      
+      if (assessment.status === 'completed' && assessment.recommendations) {
+        setResults(assessment.recommendations as unknown as Results);
+        setAssessmentStatus('completed');
+        
+        // Calculate days left
+        if (assessment.expires_at) {
+          const expiresAt = new Date(assessment.expires_at);
+          const now = new Date();
+          const diffTime = expiresAt.getTime() - now.getTime();
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          setDaysLeft(Math.max(0, diffDays));
+        }
+      } else if (assessment.status === 'processing') {
+        setAssessmentStatus('processing');
+        setResults(null);
+      } else if (assessment.status === 'failed') {
+        setAssessmentStatus('failed');
+        setResults(null);
+      }
+      
+      // Update URL without navigation
+      setSearchParams({ id: assessment.id });
+      setShowHistory(false);
+    } catch (err) {
+      console.error("Failed to load assessment:", err);
+      toast.error("Connection slow. Please refresh.");
     }
-    
-    // Update URL without navigation
-    setSearchParams({ id: assessment.id });
-    setShowHistory(false);
-    setIsLoading(false);
   };
 
   useEffect(() => {
     let isMounted = true;
     
     const fetchAssessmentResults = async (id: string) => {
+      // Add timeout for mobile reliability
+      const timeoutPromise = new Promise<null>((_, reject) => 
+        setTimeout(() => reject(new Error('timeout')), 12000)
+      );
+      
       try {
-        const { data: assessment, error } = await supabase
-          .from('assessment_results')
-          .select('*')
-          .eq('id', id)
-          .maybeSingle();
+        const { data: assessment, error } = await Promise.race([
+          supabase
+            .from('assessment_results')
+            .select('*')
+            .eq('id', id)
+            .maybeSingle(),
+          timeoutPromise.then(() => ({ data: null, error: new Error('timeout') }))
+        ]) as any;
         
         if (!isMounted) return;
         

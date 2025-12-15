@@ -364,10 +364,12 @@ export default function GetStarted() {
     }
   }, [searchParams, setSearchParams]);
 
-  // Helper function to check payment with timeout
-  const checkPaymentStatus = async (userId: string) => {
+  // Helper function to check payment with timeout and retry
+  const checkPaymentStatus = async (userId: string, retryCount = 0) => {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    // Progressive timeout: 8s first try, 12s second try
+    const timeout = retryCount === 0 ? 8000 : 12000;
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
     
     try {
       const { data: paymentData, error } = await supabase.functions.invoke("check-payment", {
@@ -383,7 +385,11 @@ export default function GetStarted() {
       }
     } catch (err: any) {
       clearTimeout(timeoutId);
-      // Don't show error toast for timeout - user can still proceed
+      // Retry once on timeout
+      if (retryCount < 1 && err?.name === 'AbortError') {
+        console.log("Payment check timed out, retrying...");
+        return checkPaymentStatus(userId, retryCount + 1);
+      }
       console.error("Failed to check payment status:", err);
     }
   };
@@ -496,27 +502,45 @@ export default function GetStarted() {
       toast.error("Authentication required. Please log in to continue.");
       throw new Error("Authentication required");
     }
-
+    
     setIsAnalyzing(true);
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 90000);
+    
+    // Use shorter initial timeout with retry for mobile reliability
+    const fetchWithRetry = async (retryCount = 0): Promise<Response> => {
+      const controller = new AbortController();
+      // Progressive timeout: 45s first, 60s retry
+      const timeout = retryCount === 0 ? 45000 : 60000;
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      
+      try {
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-profile`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${sessionData.session.access_token}`,
+          },
+          body: JSON.stringify({
+            resumeText: data.resumeText,
+          }),
+          signal: controller.signal,
+          keepalive: true,
+        });
+        clearTimeout(timeoutId);
+        return response;
+      } catch (err: any) {
+        clearTimeout(timeoutId);
+        if (err?.name === 'AbortError' && retryCount < 1) {
+          toast.info("Still analyzing... Please wait.", { duration: 5000 });
+          return fetchWithRetry(retryCount + 1);
+        }
+        throw err;
+      }
+    };
     
     try {
-      toast.info("Analyzing your profile... This may take up to a minute on mobile.", { duration: 10000 });
+      toast.info("Analyzing your profile...", { duration: 8000 });
       
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-profile`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${sessionData.session.access_token}`,
-        },
-        body: JSON.stringify({
-          resumeText: data.resumeText,
-        }),
-        signal: controller.signal,
-      });
-      
-      clearTimeout(timeoutId);
+      const response = await fetchWithRetry();
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -570,8 +594,7 @@ export default function GetStarted() {
 
       toast.success("Profile analyzed successfully!");
       setStep(3);
-    } catch (error) {
-      clearTimeout(timeoutId);
+    } catch (error: any) {
       console.error("AI analysis error:", error);
       
       if (error instanceof Error && error.name === 'AbortError') {
@@ -594,9 +617,6 @@ export default function GetStarted() {
       return;
     }
     
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120000);
-    
     let assessmentId: string | null = null;
     
     try {
@@ -617,24 +637,44 @@ export default function GetStarted() {
       
       assessmentId = assessment.id;
       
-      toast.info("Generating your personalized opportunities... This may take 1-2 minutes. You'll receive an email when ready!", { duration: 20000 });
+      toast.info("Generating your opportunities... You'll receive an email when ready!", { duration: 15000 });
       
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-recommendations`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          wizardData: data,
-          extractedProfile: aiAnalysis,
-          assessmentId: assessmentId,
-        }),
-        signal: controller.signal,
-      });
+      // Fetch with retry for mobile reliability
+      const fetchWithRetry = async (retryCount = 0): Promise<Response> => {
+        const controller = new AbortController();
+        // Progressive timeout: 60s first, 90s retry
+        const timeout = retryCount === 0 ? 60000 : 90000;
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+        
+        try {
+          const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-recommendations`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+              wizardData: data,
+              extractedProfile: aiAnalysis,
+              assessmentId: assessmentId,
+            }),
+            signal: controller.signal,
+            keepalive: true,
+          });
+          clearTimeout(timeoutId);
+          return response;
+        } catch (err: any) {
+          clearTimeout(timeoutId);
+          if (err?.name === 'AbortError' && retryCount < 1) {
+            toast.info("Still generating... Please wait.", { duration: 8000 });
+            return fetchWithRetry(retryCount + 1);
+          }
+          throw err;
+        }
+      };
       
-      clearTimeout(timeoutId);
-
+      const response = await fetchWithRetry();
+      
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to generate recommendations");
@@ -676,11 +716,15 @@ export default function GetStarted() {
         console.warn("Email notification failed (non-critical):", emailError);
       }
       
-      sessionStorage.setItem("careermovr_results", JSON.stringify(result));
+      // Store results in sessionStorage for immediate access
+      try {
+        sessionStorage.setItem("careermovr_results", JSON.stringify(result));
+      } catch (e) {
+        console.warn("Failed to cache results:", e);
+      }
       toast.success("Your personalized opportunities are ready!");
       navigate(`/dashboard?id=${assessmentId}`);
-    } catch (error) {
-      clearTimeout(timeoutId);
+    } catch (error: any) {
       console.error("Generation error:", error);
       
       if (assessmentId) {
