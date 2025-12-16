@@ -302,6 +302,43 @@ serve(async (req) => {
     });
   }
 
+  // SERVER-SIDE: Enforce 3-run limit per payment period
+  // This prevents users from bypassing client-side checks
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  
+  if (supabaseUrl && supabaseServiceKey) {
+    try {
+      const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+      const now = new Date().toISOString();
+      
+      const { data: completedAssessments, error: assessmentError } = await supabaseAdmin
+        .from('assessment_results')
+        .select('id, status, expires_at')
+        .eq('user_id', userId)
+        .gte('expires_at', now)
+        .eq('status', 'completed');
+      
+      if (!assessmentError && completedAssessments && completedAssessments.length >= 3) {
+        auditLog('run_limit_exceeded', { 
+          userId, 
+          completedRuns: completedAssessments.length,
+          message: 'User attempted to exceed 3-run limit'
+        });
+        return new Response(JSON.stringify({ 
+          error: 'You have used all 3 assessments for this payment period. Please make a new payment to continue.' 
+        }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } catch (runLimitError) {
+      // Log but don't block if the check fails - allow the request to proceed
+      console.error('[GENERATE-RECOMMENDATIONS] Run limit check failed:', runLimitError);
+      auditLog('run_limit_check_error', { userId, error: String(runLimitError) });
+    }
+  }
+
   auditLog('request_started', { userId });
 
   try {
