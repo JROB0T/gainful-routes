@@ -149,7 +149,8 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+      console.error("[EXTRACT-PROFILE] AI API key is not configured");
+      throw new Error("Analysis service unavailable");
     }
 
     const inputContent = `
@@ -409,15 +410,8 @@ If information is sparse, make reasonable inferences based on available context.
       errorType: errorMessage,
     });
     
-    // Return safe error messages - only expose known safe errors
-    const safeErrors = [
-      "LOVABLE_API_KEY is not configured",
-      "AI did not return structured data",
-      "Failed to parse AI analysis results"
-    ];
-    const userMessage = safeErrors.includes(errorMessage) 
-      ? "Analysis failed. Please try again." 
-      : "Something went wrong. Please try again.";
+    // Return safe generic error message - never expose internal details
+    const userMessage = "Something went wrong. Please try again.";
     
     return new Response(JSON.stringify({ error: userMessage }), {
       status: 500,

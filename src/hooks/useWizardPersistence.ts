@@ -4,6 +4,9 @@ import type { WizardData } from "@/pages/GetStarted";
 const STORAGE_KEY = "careermovr_wizard_data";
 const STEP_KEY = "careermovr_wizard_step";
 
+// Use sessionStorage instead of localStorage for sensitive data
+// sessionStorage is cleared when the tab closes, reducing exposure window
+// for XSS attacks and shared computer scenarios
 export function useWizardPersistence(
   data: WizardData,
   setData: (data: WizardData) => void,
@@ -13,8 +16,8 @@ export function useWizardPersistence(
   // Load persisted data on mount
   useEffect(() => {
     try {
-      const savedData = localStorage.getItem(STORAGE_KEY);
-      const savedStep = localStorage.getItem(STEP_KEY);
+      const savedData = sessionStorage.getItem(STORAGE_KEY);
+      const savedStep = sessionStorage.getItem(STEP_KEY);
       
       if (savedData) {
         const parsed = JSON.parse(savedData);
@@ -31,27 +34,27 @@ export function useWizardPersistence(
         }
       }
     } catch (err) {
-      console.error("Failed to restore wizard data:", err);
+      // Fail silently - don't log sensitive data errors
     }
   }, []);
 
   // Save data whenever it changes
   const persistData = useCallback((newData: WizardData, newStep: number) => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newData));
-      localStorage.setItem(STEP_KEY, String(newStep));
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(newData));
+      sessionStorage.setItem(STEP_KEY, String(newStep));
     } catch (err) {
-      console.error("Failed to persist wizard data:", err);
+      // Fail silently - storage quota exceeded or unavailable
     }
   }, []);
 
   // Clear persisted data (call after successful submission)
   const clearPersistedData = useCallback(() => {
     try {
-      localStorage.removeItem(STORAGE_KEY);
-      localStorage.removeItem(STEP_KEY);
+      sessionStorage.removeItem(STORAGE_KEY);
+      sessionStorage.removeItem(STEP_KEY);
     } catch (err) {
-      console.error("Failed to clear wizard data:", err);
+      // Fail silently
     }
   }, []);
 

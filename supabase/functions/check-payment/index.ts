@@ -83,7 +83,10 @@ serve(async (req) => {
 
     // SECOND: Fall back to checking Stripe for payment records
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
+    if (!stripeKey) {
+      console.error("[CHECK-PAYMENT] STRIPE_SECRET_KEY is not configured");
+      throw new Error("Payment service unavailable");
+    }
 
     const stripe = new Stripe(stripeKey, {
       apiVersion: "2025-08-27.basil",
