@@ -360,7 +360,8 @@ serve(async (req) => {
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+      console.error("[GENERATE-RECOMMENDATIONS] AI API key is not configured");
+      throw new Error("Recommendation service unavailable");
     }
 
     // Merge extracted profile data with wizard data for comprehensive context
@@ -762,14 +763,8 @@ Generate 10-15 recommendations, 3-6 ai_centric_opportunities, 3-6 ai_proof_oppor
       errorType: errorMessage,
     });
     
-    // Return safe error messages - only expose known safe user-facing errors
-    const safeUserErrors = [
-      "AI returned malformed JSON. Please try again.",
-      "AI response did not contain valid JSON. Please try again."
-    ];
-    const userMessage = safeUserErrors.includes(errorMessage) 
-      ? errorMessage 
-      : "Failed to generate recommendations. Please try again.";
+    // Return safe generic error message - never expose internal details
+    const userMessage = "Failed to generate recommendations. Please try again.";
     
     return new Response(JSON.stringify({ error: userMessage }), {
       status: 500,
