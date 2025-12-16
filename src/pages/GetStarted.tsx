@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Compass, ArrowLeft, AlertTriangle } from "lucide-react";
@@ -19,6 +19,7 @@ import { StepWhiteCollarQuestions } from "@/components/wizard/StepWhiteCollarQue
 import { StepHybridQuestions } from "@/components/wizard/StepHybridQuestions";
 import { TeaserPreview } from "@/components/wizard/TeaserPreview";
 import { WizardProgress } from "@/components/wizard/WizardProgress";
+import { useWizardPersistence } from "@/hooks/useWizardPersistence";
 
 export type WizardData = {
   // Step 1
@@ -350,6 +351,26 @@ export default function GetStarted() {
   const [hasPaid, setHasPaid] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [expiryDate, setExpiryDate] = useState<string | null>(null);
+  
+  // Track if data has been restored to prevent overwriting
+  const dataRestoredRef = useRef(false);
+  
+  // Persistence hook - restore data on mount
+  const { persistData, clearPersistedData } = useWizardPersistence(
+    data,
+    (restoredData) => {
+      if (!dataRestoredRef.current) {
+        setData(restoredData);
+        dataRestoredRef.current = true;
+      }
+    },
+    step,
+    (restoredStep) => {
+      if (!dataRestoredRef.current) {
+        setStep(restoredStep);
+      }
+    }
+  );
 
   // Handle payment success callback
   useEffect(() => {
@@ -443,7 +464,12 @@ export default function GetStarted() {
   }, []);
 
   const updateData = (newData: Partial<WizardData>) => {
-    setData(prev => ({ ...prev, ...newData }));
+    setData(prev => {
+      const updated = { ...prev, ...newData };
+      // Persist data whenever it changes
+      persistData(updated, step);
+      return updated;
+    });
   };
 
   // Build step sequence based on branching logic
@@ -478,14 +504,18 @@ export default function GetStarted() {
 
   const handleNext = () => {
     if (step < stepSequence.length) {
-      setStep(step + 1);
+      const newStep = step + 1;
+      setStep(newStep);
+      persistData(data, newStep);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const handleBack = () => {
     if (step > 1) {
-      setStep(step - 1);
+      const newStep = step - 1;
+      setStep(newStep);
+      persistData(data, newStep);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
