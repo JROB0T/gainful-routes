@@ -41,7 +41,11 @@ const passwordSchema = z
   .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
   .regex(/[0-9]/, "Password must contain at least one number");
 
-const nameSchema = z.string().min(2, "Name must be at least 2 characters").max(100, "Name is too long");
+const usernameSchema = z
+  .string()
+  .min(3, "Username must be at least 3 characters")
+  .max(30, "Username is too long")
+  .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores");
 
 // User-friendly error messages for common Supabase errors
 const mapAuthError = (error: string): string => {
@@ -63,37 +67,72 @@ const mapAuthError = (error: string): string => {
   return "An unexpected error occurred. Please try again.";
 };
 
+type AuthMode = "login" | "signup" | "forgot-password";
+
 export default function Auth() {
   const navigate = useNavigate();
-  const [isLogin, setIsLogin] = useState(true);
+  const [mode, setMode] = useState<AuthMode>("login");
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
-  const [errors, setErrors] = useState<{ email?: string; password?: string; name?: string }>({});
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [errors, setErrors] = useState<{ 
+    email?: string; 
+    password?: string; 
+    confirmPassword?: string;
+    username?: string;
+  }>({});
+  const [resetEmailSent, setResetEmailSent] = useState(false);
 
   const validateForm = (): boolean => {
-    const newErrors: { email?: string; password?: string; name?: string } = {};
+    const newErrors: typeof errors = {};
 
     const emailResult = emailSchema.safeParse(email);
     if (!emailResult.success) {
       newErrors.email = emailResult.error.errors[0].message;
     }
 
-    const passwordResult = passwordSchema.safeParse(password);
-    if (!passwordResult.success) {
-      newErrors.password = passwordResult.error.errors[0].message;
+    if (mode === "signup") {
+      const usernameResult = usernameSchema.safeParse(username);
+      if (!usernameResult.success) {
+        newErrors.username = usernameResult.error.errors[0].message;
+      }
+
+      const passwordResult = passwordSchema.safeParse(password);
+      if (!passwordResult.success) {
+        newErrors.password = passwordResult.error.errors[0].message;
+      }
+
+      if (password !== confirmPassword) {
+        newErrors.confirmPassword = "Passwords do not match";
+      }
     }
 
-    if (!isLogin) {
-      const nameResult = nameSchema.safeParse(name);
-      if (!nameResult.success) {
-        newErrors.name = nameResult.error.errors[0].message;
+    if (mode === "login") {
+      if (!password) {
+        newErrors.password = "Password is required";
       }
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const sendWelcomeEmail = async (accessToken: string, userName: string) => {
+    try {
+      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-welcome-email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ userName }),
+      });
+    } catch (err) {
+      console.error("Failed to send welcome email:", err);
+      // Non-blocking - don't fail signup if email fails
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -108,25 +147,25 @@ export default function Auth() {
     // Helper for auth with retry on timeout
     const authWithRetry = async (retryCount = 0): Promise<any> => {
       const controller = new AbortController();
-      // Progressive timeout: 15s first, 25s retry
       const timeout = retryCount === 0 ? 15000 : 25000;
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
       try {
         let result;
-        if (isLogin) {
+        if (mode === "login") {
           result = await supabase.auth.signInWithPassword({
             email: email.trim(),
             password,
           });
-        } else {
+        } else if (mode === "signup") {
           result = await supabase.auth.signUp({
             email: email.trim(),
             password,
             options: {
               emailRedirectTo: `${window.location.origin}/`,
               data: {
-                full_name: name.trim(),
+                username: username.trim(),
+                full_name: username.trim(),
               },
             },
           });
@@ -144,14 +183,20 @@ export default function Auth() {
     };
 
     try {
-      const { error } = await authWithRetry();
+      const { data: authData, error } = await authWithRetry();
       if (error) throw error;
       
-      if (isLogin) {
+      if (mode === "login") {
         toast.success("Welcome back!");
         navigate("/dashboard");
-      } else {
-        toast.success("Account created! Please check your email to confirm.");
+      } else if (mode === "signup") {
+        toast.success("Account created successfully!");
+        
+        // Send welcome email in background
+        if (authData?.session?.access_token) {
+          sendWelcomeEmail(authData.session.access_token, username.trim());
+        }
+        
         navigate("/get-started");
       }
     } catch (error: any) {
@@ -159,6 +204,32 @@ export default function Auth() {
         ? "Connection timed out. Please check your network and try again."
         : (error?.message || "An error occurred");
       toast.error(mapAuthError(message));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const emailResult = emailSchema.safeParse(email);
+    if (!emailResult.success) {
+      setErrors({ email: emailResult.error.errors[0].message });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/auth?mode=reset`,
+      });
+      
+      if (error) throw error;
+      
+      setResetEmailSent(true);
+      toast.success("Password reset email sent! Check your inbox.");
+    } catch (error: any) {
+      toast.error("Failed to send reset email. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -178,6 +249,12 @@ export default function Auth() {
       toast.error("Failed to sign in with Google. Please try again.");
       setIsLoading(false);
     }
+  };
+
+  const switchMode = (newMode: AuthMode) => {
+    setMode(newMode);
+    setErrors({});
+    setResetEmailSent(false);
   };
 
   return (
@@ -210,141 +287,245 @@ export default function Auth() {
 
           {/* Heading */}
           <h1 className="text-2xl font-display font-bold text-center mb-2 text-foreground">
-            {isLogin ? "Welcome back" : "Create your account"}
+            {mode === "login" && "Welcome back"}
+            {mode === "signup" && "Create your account"}
+            {mode === "forgot-password" && "Reset your password"}
           </h1>
           <p className="text-muted-foreground text-center mb-8">
-            {isLogin
-              ? "Sign in to access your dashboard"
-              : "Start discovering your opportunities"}
+            {mode === "login" && "Sign in to access your dashboard"}
+            {mode === "signup" && "Start discovering your opportunities"}
+            {mode === "forgot-password" && "We'll send you a reset link"}
           </p>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {!isLogin && (
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="John Doe"
-                    value={name}
-                    onChange={(e) => {
-                      setName(e.target.value);
-                      if (errors.name) setErrors({ ...errors, name: undefined });
-                    }}
-                    className={`pl-10 ${errors.name ? "border-destructive" : ""}`}
-                    required={!isLogin}
-                  />
+          {/* Forgot Password Form */}
+          {mode === "forgot-password" && (
+            <form onSubmit={handleForgotPassword} className="space-y-5">
+              {resetEmailSent ? (
+                <div className="text-center py-4">
+                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Mail className="w-8 h-8 text-primary" />
+                  </div>
+                  <p className="text-foreground font-medium mb-2">Check your email</p>
+                  <p className="text-muted-foreground text-sm">
+                    We've sent a password reset link to {email}
+                  </p>
                 </div>
-                {errors.name && (
-                  <p className="text-sm text-destructive">{errors.name}</p>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={email}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          if (errors.email) setErrors({ ...errors, email: undefined });
+                        }}
+                        className={`pl-10 ${errors.email ? "border-destructive" : ""}`}
+                        required
+                      />
+                    </div>
+                    {errors.email && (
+                      <p className="text-sm text-destructive">{errors.email}</p>
+                    )}
+                  </div>
+
+                  <Button
+                    type="submit"
+                    variant="gradient"
+                    size="lg"
+                    className="w-full"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Sending..." : "Send Reset Link"}
+                  </Button>
+                </>
+              )}
+
+              <p className="text-center text-sm text-muted-foreground mt-6">
+                Remember your password?{" "}
+                <button
+                  type="button"
+                  onClick={() => switchMode("login")}
+                  className="text-primary font-medium hover:underline"
+                >
+                  Sign in
+                </button>
+              </p>
+            </form>
+          )}
+
+          {/* Login/Signup Form */}
+          {(mode === "login" || mode === "signup") && (
+            <>
+              <form onSubmit={handleSubmit} className="space-y-5">
+                {mode === "signup" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="username">Username</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        id="username"
+                        type="text"
+                        placeholder="johndoe"
+                        value={username}
+                        onChange={(e) => {
+                          setUsername(e.target.value);
+                          if (errors.username) setErrors({ ...errors, username: undefined });
+                        }}
+                        className={`pl-10 ${errors.username ? "border-destructive" : ""}`}
+                        required={mode === "signup"}
+                      />
+                    </div>
+                    {errors.username && (
+                      <p className="text-sm text-destructive">{errors.username}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Letters, numbers, and underscores only
+                    </p>
+                  </div>
                 )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        if (errors.email) setErrors({ ...errors, email: undefined });
+                      }}
+                      className={`pl-10 ${errors.email ? "border-destructive" : ""}`}
+                      required
+                    />
+                  </div>
+                  {errors.email && (
+                    <p className="text-sm text-destructive">{errors.email}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (errors.password) setErrors({ ...errors, password: undefined });
+                      }}
+                      className={`pl-10 ${errors.password ? "border-destructive" : ""}`}
+                      required
+                    />
+                  </div>
+                  {errors.password && (
+                    <p className="text-sm text-destructive">{errors.password}</p>
+                  )}
+                  {mode === "signup" && (
+                    <p className="text-xs text-muted-foreground">
+                      8+ characters with uppercase, lowercase, and a number
+                    </p>
+                  )}
+                </div>
+
+                {mode === "signup" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirm Password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        placeholder="••••••••"
+                        value={confirmPassword}
+                        onChange={(e) => {
+                          setConfirmPassword(e.target.value);
+                          if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: undefined });
+                        }}
+                        className={`pl-10 ${errors.confirmPassword ? "border-destructive" : ""}`}
+                        required
+                      />
+                    </div>
+                    {errors.confirmPassword && (
+                      <p className="text-sm text-destructive">{errors.confirmPassword}</p>
+                    )}
+                  </div>
+                )}
+
+                {mode === "login" && (
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => switchMode("forgot-password")}
+                      className="text-sm text-primary hover:underline"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                )}
+
+                <Button
+                  type="submit"
+                  variant="gradient"
+                  size="lg"
+                  className="w-full"
+                  disabled={isLoading}
+                >
+                  {isLoading
+                    ? "Please wait..."
+                    : mode === "login"
+                    ? "Sign In"
+                    : "Create Account"}
+                </Button>
+              </form>
+
+              {/* Divider */}
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border"></div>
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                </div>
               </div>
-            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (errors.email) setErrors({ ...errors, email: undefined });
-                  }}
-                  className={`pl-10 ${errors.email ? "border-destructive" : ""}`}
-                  required
-                />
-              </div>
-              {errors.email && (
-                <p className="text-sm text-destructive">{errors.email}</p>
-              )}
-            </div>
+              {/* Google Sign In */}
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="w-full"
+                onClick={handleGoogleSignIn}
+                disabled={isLoading}
+              >
+                <GoogleIcon />
+                <span className="ml-2">Continue with Google</span>
+              </Button>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (errors.password) setErrors({ ...errors, password: undefined });
-                  }}
-                  className={`pl-10 ${errors.password ? "border-destructive" : ""}`}
-                  required
-                />
-              </div>
-              {errors.password && (
-                <p className="text-sm text-destructive">{errors.password}</p>
-              )}
-              {!isLogin && (
-                <p className="text-xs text-muted-foreground">
-                  8+ characters with uppercase, lowercase, and a number
-                </p>
-              )}
-            </div>
-
-            <Button
-              type="submit"
-              variant="gradient"
-              size="lg"
-              className="w-full"
-              disabled={isLoading}
-            >
-              {isLoading
-                ? "Please wait..."
-                : isLogin
-                ? "Sign In"
-                : "Create Account"}
-            </Button>
-          </form>
-
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border"></div>
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-            </div>
-          </div>
-
-          {/* Google Sign In */}
-          <Button
-            type="button"
-            variant="outline"
-            size="lg"
-            className="w-full"
-            onClick={handleGoogleSignIn}
-            disabled={isLoading}
-          >
-            <GoogleIcon />
-            <span className="ml-2">Continue with Google</span>
-          </Button>
-
-          {/* Toggle */}
-          <p className="text-center text-sm text-muted-foreground mt-6">
-            {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
-            <button
-              type="button"
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setErrors({});
-              }}
-              className="text-primary font-medium hover:underline"
-            >
-              {isLogin ? "Sign up" : "Sign in"}
-            </button>
-          </p>
+              {/* Toggle */}
+              <p className="text-center text-sm text-muted-foreground mt-6">
+                {mode === "login" ? "Don't have an account?" : "Already have an account?"}{" "}
+                <button
+                  type="button"
+                  onClick={() => switchMode(mode === "login" ? "signup" : "login")}
+                  className="text-primary font-medium hover:underline"
+                >
+                  {mode === "login" ? "Sign up" : "Sign in"}
+                </button>
+              </p>
+            </>
+          )}
         </div>
       </div>
     </div>

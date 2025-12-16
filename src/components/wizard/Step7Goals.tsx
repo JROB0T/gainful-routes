@@ -133,8 +133,8 @@ export function Step7Goals({ data, updateData, onBack, onSubmit, isSubmitting }:
       </div>
 
       {/* Navigation */}
-      <div className="flex justify-between pt-4">
-        <Button variant="ghost" onClick={onBack}>
+      <div className="flex flex-col-reverse sm:flex-row justify-between gap-4 pt-4">
+        <Button variant="ghost" onClick={onBack} className="w-full sm:w-auto">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </Button>
@@ -143,16 +143,17 @@ export function Step7Goals({ data, updateData, onBack, onSubmit, isSubmitting }:
           size="lg"
           onClick={onSubmit} 
           disabled={!canSubmit || isSubmitting}
+          className="w-full sm:w-auto whitespace-nowrap px-6"
         >
           {isSubmitting ? (
             <>
-              <div className="animate-spin w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full mr-2" />
-              Generating...
+              <div className="animate-spin w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full mr-2 flex-shrink-0" />
+              <span>Generating...</span>
             </>
           ) : (
             <>
-              <Sparkles className="w-5 h-5 mr-2" />
-              Generate My Opportunities
+              <Sparkles className="w-5 h-5 mr-2 flex-shrink-0" />
+              <span>Generate My Opportunities</span>
             </>
           )}
         </Button>
