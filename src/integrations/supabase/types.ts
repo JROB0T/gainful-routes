@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_rate_limits: {
+        Row: {
+          bucket: string
+          count: number
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+          window_id: number
+        }
+        Insert: {
+          bucket: string
+          count?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          window_id: number
+        }
+        Update: {
+          bucket?: string
+          count?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          window_id?: number
+        }
+        Relationships: []
+      }
       assessment_results: {
         Row: {
           completed_at: string | null
@@ -61,7 +91,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_rate_limit: {
+        Args: {
+          p_bucket: string
+          p_limit: number
+          p_user_id: string
+          p_window_seconds: number
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
