@@ -526,23 +526,19 @@ export default function GetStarted() {
       return;
     }
 
-    // Get session for authenticated API call - refresh first to handle stale tokens
-    let sessionData = await supabase.auth.getSession();
+    setIsAnalyzing(true);
     
-    // If no session, try refreshing the token
-    if (!sessionData.data.session) {
-      const { data: refreshedData, error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError || !refreshedData.session) {
-        toast.error("Your session has expired. Please log in again.");
-        navigate("/auth");
-        throw new Error("Session expired");
-      }
-      sessionData = { data: refreshedData, error: null };
-    }
-    
+    // Get session if available (for authenticated users), but don't require it
+    const sessionData = await supabase.auth.getSession();
     const session = sessionData.data.session;
     
-    setIsAnalyzing(true);
+    // Build headers - include auth if available
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (session?.access_token) {
+      headers.Authorization = `Bearer ${session.access_token}`;
+    }
     
     // Use shorter initial timeout with retry for mobile reliability
     const fetchWithRetry = async (retryCount = 0): Promise<Response> => {
@@ -554,10 +550,7 @@ export default function GetStarted() {
       try {
         const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-profile`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
+          headers,
           body: JSON.stringify({
             resumeText: data.resumeText,
           }),
