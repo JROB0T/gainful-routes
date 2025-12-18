@@ -11,30 +11,48 @@ const MAX_STRING_LENGTH = 500;
 const MAX_ARRAY_LENGTH = 50;
 const MAX_ARRAY_ITEM_LENGTH = 200;
 
-// Rate limiting constants
-const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+// Rate limiting constants (now using distributed DB-backed rate limiting)
+const RATE_LIMIT_WINDOW_SECONDS = 60; // 1 minute
 const RATE_LIMIT_MAX_REQUESTS = 3; // Max 3 recommendation requests per minute per user (more restrictive due to cost)
 
-// In-memory rate limit store (per edge function instance)
-const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
-
-function checkRateLimit(userId: string): { allowed: boolean; retryAfter?: number } {
-  const now = Date.now();
-  const userLimit = rateLimitStore.get(userId);
+// Distributed rate limiter using database
+async function checkDistributedRateLimit(
+  userId: string, 
+  bucket: string, 
+  limit: number, 
+  windowSeconds: number
+): Promise<{ allowed: boolean; retryAfter?: number; count?: number }> {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   
-  if (!userLimit || now > userLimit.resetTime) {
-    // Reset or initialize
-    rateLimitStore.set(userId, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.warn('[RATE-LIMIT] Missing Supabase credentials, falling back to allow');
     return { allowed: true };
   }
   
-  if (userLimit.count >= RATE_LIMIT_MAX_REQUESTS) {
-    const retryAfter = Math.ceil((userLimit.resetTime - now) / 1000);
-    return { allowed: false, retryAfter };
+  try {
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    const { data, error } = await supabaseAdmin.rpc('check_rate_limit', {
+      p_user_id: userId,
+      p_bucket: bucket,
+      p_limit: limit,
+      p_window_seconds: windowSeconds
+    });
+    
+    if (error) {
+      console.error('[RATE-LIMIT] Database check failed:', error);
+      return { allowed: true }; // Fail open on error
+    }
+    
+    return {
+      allowed: data.allowed,
+      retryAfter: data.retry_after,
+      count: data.count
+    };
+  } catch (err) {
+    console.error('[RATE-LIMIT] Unexpected error:', err);
+    return { allowed: true }; // Fail open on error
   }
-  
-  userLimit.count++;
-  return { allowed: true };
 }
 
 function getUserIdFromJwt(authHeader: string | null): string | null {
@@ -286,10 +304,15 @@ serve(async (req) => {
     });
   }
 
-  // Check rate limit
-  const rateCheck = checkRateLimit(userId);
+  // Check rate limit using distributed database
+  const rateCheck = await checkDistributedRateLimit(
+    userId, 
+    'generate-recommendations', 
+    RATE_LIMIT_MAX_REQUESTS, 
+    RATE_LIMIT_WINDOW_SECONDS
+  );
   if (!rateCheck.allowed) {
-    auditLog('rate_limited', { userId, retryAfter: rateCheck.retryAfter });
+    auditLog('rate_limited', { userId, retryAfter: rateCheck.retryAfter, count: rateCheck.count });
     return new Response(JSON.stringify({ 
       error: `Rate limit exceeded. Please try again in ${rateCheck.retryAfter} seconds.` 
     }), {
