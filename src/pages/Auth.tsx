@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,6 +7,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
+import Turnstile from "@/components/Turnstile";
 
 // Google icon component
 const GoogleIcon = () => (
@@ -94,7 +95,23 @@ export default function Auth() {
     username?: string;
   }>({});
   const [resetEmailSent, setResetEmailSent] = useState(false);
-  
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaError, setCaptchaError] = useState(false);
+
+  // Captcha handlers
+  const handleCaptchaVerify = useCallback((token: string) => {
+    setCaptchaToken(token);
+    setCaptchaError(false);
+  }, []);
+
+  const handleCaptchaError = useCallback(() => {
+    setCaptchaToken(null);
+    setCaptchaError(true);
+  }, []);
+
+  const handleCaptchaExpire = useCallback(() => {
+    setCaptchaToken(null);
+  }, []);
   // Update mode when URL changes
   useEffect(() => {
     setMode(getInitialMode());
@@ -155,6 +172,35 @@ export default function Auth() {
     
     if (!validateForm()) {
       return;
+    }
+
+    // Verify captcha for signup
+    if (mode === "signup") {
+      if (!captchaToken) {
+        toast.error("Please complete the CAPTCHA verification");
+        return;
+      }
+
+      // Verify captcha server-side
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-captcha`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: captchaToken }),
+          }
+        );
+        const result = await response.json();
+        if (!result.success) {
+          toast.error("CAPTCHA verification failed. Please try again.");
+          setCaptchaToken(null);
+          return;
+        }
+      } catch (err) {
+        toast.error("Failed to verify CAPTCHA. Please try again.");
+        return;
+      }
     }
     
     setIsLoading(true);
@@ -474,6 +520,23 @@ export default function Auth() {
                     </div>
                     {errors.confirmPassword && (
                       <p className="text-sm text-destructive">{errors.confirmPassword}</p>
+                    )}
+                  </div>
+                )}
+
+                {/* CAPTCHA for signup */}
+                {mode === "signup" && (
+                  <div className="space-y-2">
+                    <Turnstile
+                      onVerify={handleCaptchaVerify}
+                      onError={handleCaptchaError}
+                      onExpire={handleCaptchaExpire}
+                      theme="dark"
+                    />
+                    {captchaError && (
+                      <p className="text-sm text-destructive text-center">
+                        CAPTCHA failed to load. Please refresh the page.
+                      </p>
                     )}
                   </div>
                 )}
