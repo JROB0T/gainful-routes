@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Compass, ArrowLeft, Mail, Lock, User } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -71,7 +71,17 @@ type AuthMode = "login" | "signup" | "forgot-password";
 
 export default function Auth() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<AuthMode>("login");
+  const [searchParams] = useSearchParams();
+  
+  // Initialize mode from URL params (supports ?mode=signup, ?mode=login, ?mode=reset)
+  const getInitialMode = (): AuthMode => {
+    const urlMode = searchParams.get("mode");
+    if (urlMode === "signup") return "signup";
+    if (urlMode === "reset") return "forgot-password";
+    return "login";
+  };
+  
+  const [mode, setMode] = useState<AuthMode>(getInitialMode);
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -84,6 +94,11 @@ export default function Auth() {
     username?: string;
   }>({});
   const [resetEmailSent, setResetEmailSent] = useState(false);
+  
+  // Update mode when URL changes
+  useEffect(() => {
+    setMode(getInitialMode());
+  }, [searchParams]);
 
   const validateForm = (): boolean => {
     const newErrors: typeof errors = {};
@@ -279,10 +294,10 @@ export default function Auth() {
         <div className="bg-card rounded-2xl border border-border shadow-xl p-8">
           {/* Logo */}
           <div className="flex items-center justify-center gap-2 mb-8">
-            <div className="w-10 h-10 rounded-lg bg-gradient-primary flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-gradient-primary flex items-center justify-center flex-shrink-0">
               <Compass className="w-6 h-6 text-primary-foreground" />
             </div>
-            <span className="font-display font-bold text-2xl text-foreground">CareerMovr</span>
+            <span className="font-display font-bold text-2xl text-foreground whitespace-nowrap">CareerMovr</span>
           </div>
 
           {/* Heading */}

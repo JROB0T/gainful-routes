@@ -59,11 +59,11 @@ export function Navbar() {
       <div className="container px-4 md:px-6 max-w-7xl mx-auto">
         <div className="flex items-center justify-between h-16 md:h-18">
           {/* Logo */}
-          <a href="/" className="flex items-center gap-2 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-primary flex items-center justify-center group-hover:scale-105 transition-transform">
+          <a href="/" className="flex items-center gap-2 group flex-shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-gradient-primary flex items-center justify-center group-hover:scale-105 transition-transform flex-shrink-0">
               <Compass className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="font-display font-bold text-xl text-foreground">
+            <span className="font-display font-bold text-xl text-foreground whitespace-nowrap">
               CareerMovr
             </span>
           </a>
