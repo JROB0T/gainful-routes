@@ -23,7 +23,8 @@ export function TeaserPreview({ analysis, onBack, isLoggedIn }: TeaserPreviewPro
 
   const handlePayment = async () => {
     if (!isLoggedIn) {
-      navigate("/auth");
+      // Redirect to signup (not login) for new users
+      navigate("/auth?mode=signup");
       return;
     }
 
