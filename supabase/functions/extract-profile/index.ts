@@ -65,6 +65,19 @@ function getUserIdFromJwt(authHeader: string | null): string | null {
   }
 }
 
+// Get client IP for anonymous rate limiting
+function getClientIp(req: Request): string {
+  const forwarded = req.headers.get('x-forwarded-for');
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+  const realIp = req.headers.get('x-real-ip');
+  if (realIp) {
+    return realIp;
+  }
+  return 'unknown';
+}
+
 // Audit logging helper
 function auditLog(event: string, data: Record<string, unknown>) {
   const logEntry = {
@@ -111,27 +124,24 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Extract user ID from JWT for rate limiting and audit
+  // Extract user ID from JWT if available, otherwise use IP for anonymous users
   const authHeader = req.headers.get('authorization');
   const userId = getUserIdFromJwt(authHeader);
+  const clientIp = getClientIp(req);
   
-  if (!userId) {
-    auditLog('auth_failed', { reason: 'missing_or_invalid_jwt' });
-    return new Response(JSON.stringify({ error: "Authentication required" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+  // Use userId if authenticated, otherwise use IP-based identifier for rate limiting
+  const rateLimitId = userId || `anon_${clientIp}`;
+  const isAuthenticated = !!userId;
 
-  // Check rate limit using distributed database
+  // Check rate limit using distributed database (use rateLimitId for both auth and anon users)
   const rateCheck = await checkDistributedRateLimit(
-    userId, 
+    rateLimitId, 
     'extract-profile', 
     RATE_LIMIT_MAX_REQUESTS, 
     RATE_LIMIT_WINDOW_SECONDS
   );
   if (!rateCheck.allowed) {
-    auditLog('rate_limited', { userId, retryAfter: rateCheck.retryAfter, count: rateCheck.count });
+    auditLog('rate_limited', { rateLimitId, isAuthenticated, retryAfter: rateCheck.retryAfter, count: rateCheck.count });
     return new Response(JSON.stringify({ 
       error: `Rate limit exceeded. Please try again in ${rateCheck.retryAfter} seconds.` 
     }), {
@@ -144,7 +154,7 @@ serve(async (req) => {
     });
   }
 
-  auditLog('request_started', { userId });
+  auditLog('request_started', { rateLimitId, isAuthenticated });
 
   try {
     let rawInput: unknown;
@@ -398,7 +408,8 @@ If information is sparse, make reasonable inferences based on available context.
       
       // Audit log successful extraction
       auditLog('extraction_success', {
-        userId,
+        rateLimitId,
+        isAuthenticated,
         skillsCount: extractedData.skills?.length || 0,
         softSkillsCount: extractedData.soft_skills?.length || 0,
         degreesCount: extractedData.degrees?.length || 0,
@@ -415,7 +426,7 @@ If information is sparse, make reasonable inferences based on available context.
         degreesCount: extractedData.degrees?.length
       });
     } catch (parseError) {
-      auditLog('extraction_parse_error', { userId, error: 'Failed to parse tool call arguments' });
+      auditLog('extraction_parse_error', { rateLimitId, isAuthenticated, error: 'Failed to parse tool call arguments' });
       console.error("Failed to parse tool call arguments:", toolCall.function.arguments);
       throw new Error("Failed to parse AI analysis results");
     }
@@ -429,7 +440,8 @@ If information is sparse, make reasonable inferences based on available context.
     
     // Audit log the error
     auditLog('extraction_error', { 
-      userId: userId || 'unknown',
+      rateLimitId,
+      isAuthenticated,
       errorType: errorMessage,
     });
     
