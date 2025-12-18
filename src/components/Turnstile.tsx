@@ -45,11 +45,7 @@ export default function Turnstile({ onVerify, onError, onExpire, theme = "dark" 
       widgetIdRef.current = null;
     }
 
-    const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
-    if (!siteKey) {
-      console.error("Turnstile site key not configured");
-      return;
-    }
+    const siteKey = "0x4AAAAAACHdntkT59vw_Tr3";
 
     widgetIdRef.current = window.turnstile.render(containerRef.current, {
       sitekey: siteKey,
