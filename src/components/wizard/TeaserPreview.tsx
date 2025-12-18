@@ -38,9 +38,15 @@ export function TeaserPreview({ analysis, onBack, isLoggedIn }: TeaserPreviewPro
       }
 
       if (data?.url) {
-        // Open Stripe Checkout in new tab
-        window.open(data.url, "_blank");
-        toast.info("Complete payment in the new tab, then return here.");
+        // On mobile, redirect in same window for better UX
+        // On desktop, open in new tab
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        if (isMobile) {
+          window.location.href = data.url;
+        } else {
+          window.open(data.url, "_blank");
+          toast.info("Complete payment in the new tab, then return here.");
+        }
       } else {
         toast.error("No checkout URL received. Please try again.");
       }

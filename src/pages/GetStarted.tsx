@@ -526,12 +526,21 @@ export default function GetStarted() {
       return;
     }
 
-    // Get session for authenticated API call
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData.session) {
-      toast.error("Authentication required. Please log in to continue.");
-      throw new Error("Authentication required");
+    // Get session for authenticated API call - refresh first to handle stale tokens
+    let sessionData = await supabase.auth.getSession();
+    
+    // If no session, try refreshing the token
+    if (!sessionData.data.session) {
+      const { data: refreshedData, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError || !refreshedData.session) {
+        toast.error("Your session has expired. Please log in again.");
+        navigate("/auth");
+        throw new Error("Session expired");
+      }
+      sessionData = { data: refreshedData, error: null };
     }
+    
+    const session = sessionData.data.session;
     
     setIsAnalyzing(true);
     
@@ -547,7 +556,7 @@ export default function GetStarted() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${sessionData.session.access_token}`,
+            Authorization: `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({
             resumeText: data.resumeText,
