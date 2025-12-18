@@ -14,3 +14,6 @@ verify_jwt = true
 
 [functions.check-payment]
 verify_jwt = true
+
+[functions.verify-captcha]
+verify_jwt = false
